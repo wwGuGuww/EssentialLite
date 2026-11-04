@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut android:shortcutId="shot" android:enabled="true" android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/sc_shot" android:shortcutLongLabel="@string/sc_shot">
+        <intent android:action="android.intent.action.VIEW" android:targetPackage="com.uygar.essentiallite"
+            android:targetClass="com.uygar.essentiallite.QuickShotActivity" />
+    </shortcut>
+    <shortcut android:shortcutId="note" android:enabled="true" android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/sc_note" android:shortcutLongLabel="@string/sc_note">
+        <intent android:action="android.intent.action.VIEW" android:targetPackage="com.uygar.essentiallite"
+            android:targetClass="com.uygar.essentiallite.NoteActivity" />
+    </shortcut>
+    <shortcut android:shortcutId="voice" android:enabled="true" android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/sc_voice" android:shortcutLongLabel="@string/sc_voice">
+        <intent android:action="android.intent.action.VIEW" android:targetPackage="com.uygar.essentiallite"
+            android:targetClass="com.uygar.essentiallite.RecordActivity" />
+    </shortcut>
+    <shortcut android:shortcutId="clip" android:enabled="true" android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/sc_clip" android:shortcutLongLabel="@string/sc_clip">
+        <intent android:action="android.intent.action.VIEW" android:targetPackage="com.uygar.essentiallite"
+            android:targetClass="com.uygar.essentiallite.ClipSaveActivity" />
+    </shortcut>
+</shortcuts>

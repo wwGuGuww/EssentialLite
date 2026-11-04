@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Essential Lite</string>
+    <string name="access_desc">Ses açma ve kısma tuşlarına birlikte basınca Essential Lite hızlı erişim panelini açar.</string>
+    <string name="sc_shot">Ekran görüntüsü</string>
+    <string name="sc_note">Not</string>
+    <string name="sc_voice">Ses kaydı</string>
+    <string name="sc_clip">Panodan kaydet</string>
+</resources>
