@@ -16,7 +16,8 @@ object Entities {
 
     data class Found(val kind: Kind, val text: String, val chip: String)
 
-    private val phone = Regex("""(?:\+90|0)?\s?5\d{2}[\s-]?\d{3}[\s-]?\d{2}[\s-]?\d{2}""")
+    // Telefon yalnızca +90 ya da 0 ile başlarsa sayılır; böylece takip numaraları telefon sanılmaz.
+    private val phone = Regex("""(?<![\d])(?:\+90\s?|0)5\d{2}[\s-]?\d{3}[\s-]?\d{2}[\s-]?\d{2}(?![\d])""")
     private val iban = Regex("""TR\s?\d{2}(?:\s?\d{4}){5}\s?\d{2}""", RegexOption.IGNORE_CASE)
     private val date = Regex("""\b(\d{1,2})[./](\d{1,2})[./](20\d{2})\b""")
     private val track = Regex("""\b[A-Z]{2}\d{9}[A-Z]{2}\b|\b\d{10,16}\b""")
