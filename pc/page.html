@@ -237,6 +237,7 @@ function connect() {
     else if (d.type === 'ping') { st.ping = d.ping; $('ping').textContent = d.ping; }
     else if (d.type === 'file') { files[d.id] = d; renderFiles(); }
     else if (d.type === 'control') setControl(d.on);
+    else if (d.type === 'deny') { $('liveMsg').textContent = d.why; $('liveMsg').style.color = '#F0303A'; setTimeout(() => { $('liveMsg').style.color = ''; setControl(controlOn); }, 4000); }
     else if (d.type === 'frame') { if (!controlOn) setControl(true); scr.src = 'data:image/jpeg;base64,' + d.d; }
     else if (d.type === 'clip') $('clipLast').textContent = 'TELEFONDAN GELEN: ' + d.text;
   };

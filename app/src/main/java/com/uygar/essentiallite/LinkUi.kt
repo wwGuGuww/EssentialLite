@@ -862,12 +862,20 @@ class LinkControlActivity : BaseActivity() {
         opt("c_dim", false, "TELEFON EKRANINI KARART", "Yanındaki biri oturumu görmesin")
         opt("c_auto", true, "5 DK SONRA OTOMATİK KES", "Unutursan oturum kendiliğinden kapanır")
 
-        main.text = dot(if (live) "● OTURUMU SONLANDIR" else "● KONTROLE İZİN VER", Ui.RED)
+        main.text = dot(if (live && LinkControl.watchOnly) "● KONTROLE İZİN VER" else if (live) "● OTURUMU SONLANDIR" else "● KONTROLE İZİN VER", Ui.RED)
         main.setTextColor(if (live) Ui.RED else Ui.WHITE)
         main.background = Ui.rounded(this, Color.TRANSPARENT, 30f, if (live) Ui.RED else Ui.WHITE)
     }
 
     private fun toggle() {
+        if (LinkControl.active && LinkControl.watchOnly) {
+            // Sadece izleme açıkken "kontrole izin ver": oturum yeniden kurulmadan tam kontrole geçilir.
+            if (!accessOk()) {
+                Store.toast(this, "ÖNCE ERİŞİLEBİLİRLİK HİZMETİNİ AÇ")
+                runCatching { startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) }
+            } else { LinkControl.watchOnly = false; Link.setFeature(this, "mirror", false); paint() }
+            return
+        }
         if (LinkControl.active) { LinkControl.stopAll(); return }
         if (!Link.live) { Store.toast(this, "ÖNCE PC'YE BAĞLAN"); return }
         if (!accessOk() && Link.feature(this, "c_touch", true)) {

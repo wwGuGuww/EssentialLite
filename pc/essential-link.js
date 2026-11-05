@@ -170,6 +170,7 @@ function handle(s, m) {
       break;
     }
     case 'frame': broadcast({ type: 'frame', d: m.d, w: m.w, h: m.h }); break;
+    case 'deny': broadcast({ type: 'deny', why: m.why }); break;
     case 'control': broadcast({ type: 'control', on: !!m.on }); break;
   }
 }

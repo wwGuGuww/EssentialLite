@@ -81,7 +81,14 @@ object LinkControl {
 
     /** PC'den gelen dokunma, tuş ve yazı iletileri. */
     fun input(ctx: Context, m: JSONObject) {
-        if (!active || watchOnly || !Link.feature(ctx, "c_touch", true)) return
+        val why = when {
+            !active -> "TELEFONDA KONTROL OTURUMU KAPALI"
+            watchOnly -> "SADECE İZLEME AÇIK · TELEFONDA \"KONTROLE İZİN VER\"E BAS"
+            !Link.feature(ctx, "c_touch", true) -> "TELEFONDA \"DOKUNMA VE YAZMA\" KAPALI"
+            KeyComboService.instance == null -> "TELEFONDA ERİŞİLEBİLİRLİK HİZMETİ KAPALI"
+            else -> null
+        }
+        if (why != null) { Link.send("t" to "deny", "why" to why); return }
         val svc = KeyComboService.instance ?: return
         val dm = ctx.resources.displayMetrics
         val w = dm.widthPixels.toFloat()
