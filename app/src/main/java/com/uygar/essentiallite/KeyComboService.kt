@@ -872,18 +872,20 @@ class KeyComboService : AccessibilityService() {
                 })
             })
         }
+        // Pencere tüm ekranı kaplar: kartın dışındaki boş yere dokunmak kartı kapatır.
+        // Kartın kendisi dokunuşu yutar, böylece kart içine basmak kapatmaz.
+        card.isClickable = true
         val holder = FrameLayout(this).apply {
-            setPadding(dp(12), 0, dp(12), dp(24))
-            addView(card, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT))
+            setOnClickListener { dismissCapture() }
+            addView(card, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM).apply {
+                setMargins(dp(12), 0, dp(12), dp(24))
+            })
         }
         card.alpha = 0f
         card.translationY = dp(24).toFloat()
-        // Kartın dışına dokunulunca ya da belli süre işlem yapılmazsa kart ve küçük resim kendiliğinden kalkar.
-        holder.setOnTouchListener { _, ev ->
-            if (ev.action == MotionEvent.ACTION_OUTSIDE) { dismissCapture(); true } else false
-        }
-        wm().addView(holder, ov(WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.WRAP_CONTENT,
-            Gravity.BOTTOM, WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH))
+        // Belli süre işlem yapılmazsa kart ve küçük resim kendiliğinden kalkar.
+        wm().addView(holder, ov(WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.MATCH_PARENT,
+            Gravity.TOP or Gravity.START, WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE))
         card.animate().alpha(1f).translationY(0f).setDuration(dur(300)).start()
         cardWin = holder
         autoDismiss?.let { main.removeCallbacks(it) }
