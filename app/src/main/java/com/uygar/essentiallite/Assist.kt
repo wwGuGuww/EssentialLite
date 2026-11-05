@@ -24,7 +24,8 @@ class AssistSession(private val ctx: Context) : VoiceInteractionSession(ctx) {
         super.onShow(args, showFlags)
         val svc = KeyComboService.instance
         if (svc != null) {
-            svc.showPanel()
+            // Asistan açılınca ekranı yakala: OCR metni kartta görünür, boş yere dokunmak kapatır.
+            svc.showAssistCapture()
         } else {
             // Panel erişilebilirlik servisiyle çalışır; kapalıysa kurulum sayfasına götür.
             Store.toast(ctx, "ÖNCE HIZLI ERİŞİMİ AÇ")

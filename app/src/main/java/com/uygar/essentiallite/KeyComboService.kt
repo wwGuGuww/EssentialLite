@@ -101,6 +101,11 @@ class KeyComboService : AccessibilityService() {
         instance = this
     }
 
+    /** Asistan açıldığında ekranı yakalar ve kartı (OCR yazısıyla) gösterir. */
+    fun showAssistCapture() {
+        main.post { captureFlow() }
+    }
+
     /** Paneli (açık değilse) açar. Başka bir yerden, ör. asistan olarak çağrılır. */
     fun showPanel() {
         main.post { if (panel == null) togglePanel() }
