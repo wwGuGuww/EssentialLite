@@ -41,6 +41,7 @@ object NothingGlyph {
 
     private var gm: GlyphManager? = null
     private var worker: Thread? = null
+    private var appCtx: Context? = null
     @Volatile private var gen = 0
     /** Başlat/durdur işleri sırayla çalışır; böylece yeni desen, eskinin kapanışıyla çakışmaz. */
     private val ops = java.util.concurrent.Executors.newSingleThreadExecutor()
@@ -67,6 +68,7 @@ object NothingGlyph {
         if (!supported() || pattern == "KAPALI") return
         val my = ++gen
         val app = ctx.applicationContext
+        appCtx = app
         ops.execute {
             if (my != gen) return@execute
             val m = GlyphManager.getInstance(app)
@@ -122,6 +124,40 @@ object NothingGlyph {
                 runCatching { m.closeSession() }
                 runCatching { m.unInit() }
             }
+            forceOff()
+        }
+    }
+
+    /**
+     * Bağımsız son kapatma: yeni bir bağlantı açıp tüm ışıkları söndürür. Önceki oturum yarım kaldıysa (durdurma bağlantıdan önce
+     * geldiyse, uygulama kapanıp açıldıysa) ışıkların açık kalmasını önler. Başka bir uygulama Glyph'i kullanıyorsa dokunmaz.
+     */
+    fun forceOff(ctx: Context? = null) {
+        val app = ctx?.applicationContext ?: appCtx ?: return
+        if (!supported()) return
+        val latch = java.util.concurrent.CountDownLatch(1)
+        try {
+            val m = GlyphManager.getInstance(app)
+            m.init(object : GlyphManager.Callback {
+                override fun onServiceConnected(c: ComponentName) {
+                    try {
+                        m.register(Glyph.DEVICE_20111)
+                        m.openSession()
+                        m.turnOff()
+                        Thread.sleep(120)
+                        m.turnOff()
+                        m.closeSession()
+                    } catch (e: Throwable) {
+                    } finally {
+                        runCatching { m.unInit() }
+                        latch.countDown()
+                    }
+                }
+
+                override fun onServiceDisconnected(c: ComponentName) {}
+            })
+            latch.await(3, java.util.concurrent.TimeUnit.SECONDS)
+        } catch (e: Throwable) {
         }
     }
 }
@@ -199,6 +235,7 @@ class AlarmRingService : Service() {
         h.removeCallbacks(auto)
         // Çalma ekranı açıksa o da kapanır (otomatik susunca ışıklar yanık kalmasın).
         sendBroadcast(Intent(AlarmRingActivity.DONE).setPackage(packageName))
+        NothingGlyph.stop()
         runCatching { ringtone?.stop() }
         runCatching { getSystemService(Vibrator::class.java).cancel() }
         super.onDestroy()
@@ -261,6 +298,11 @@ class AlarmRingActivity : Activity() {
 
     override fun onPause() {
         super.onPause()
+        NothingGlyph.stop()
+    }
+
+    override fun onStop() {
+        super.onStop()
         NothingGlyph.stop()
     }
 }
