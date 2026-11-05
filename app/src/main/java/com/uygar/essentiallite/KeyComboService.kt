@@ -846,6 +846,25 @@ class KeyComboService : AccessibilityService() {
             background = Ui.rounded(this@KeyComboService, Ui.BG, 32f, Ui.BORDER2)
             setPadding(dp(20), dp(16), dp(14), dp(12))
             addView(Ui.kindLabel(this@KeyComboService, title))
+            if (isShot) {
+                // Ekrandaki yazı: varsa gösterilir. Yazıya dokunmak kartı kapatmaz; basılı tutmak kopyalar.
+                addView(Ui.text(this@KeyComboService, "", 11f, Ui.GREY).apply {
+                    letterSpacing = 0.04f
+                    setLineSpacing(0f, 1.35f)
+                    maxLines = 6
+                    ellipsize = android.text.TextUtils.TruncateAt.END
+                    setPadding(0, dp(10), dp(6), dp(4))
+                    visibility = View.GONE
+                    isClickable = true
+                    setOnLongClickListener {
+                        (getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager)
+                            .setPrimaryClip(android.content.ClipData.newPlainText("EL", text))
+                        Store.toast(this@KeyComboService, "METİN KOPYALANDI")
+                        true
+                    }
+                    ocrView = this
+                }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
+            }
             addView(LinearLayout(this@KeyComboService).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.END
@@ -874,7 +893,6 @@ class KeyComboService : AccessibilityService() {
         }
         // Pencere tüm ekranı kaplar: kartın dışındaki boş yere dokunmak kartı kapatır.
         // Kartın kendisi dokunuşu yutar, böylece kart içine basmak kapatmaz.
-        card.isClickable = true
         val holder = FrameLayout(this).apply {
             setOnClickListener { dismissCapture() }
             addView(card, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM).apply {
@@ -888,12 +906,26 @@ class KeyComboService : AccessibilityService() {
             Gravity.TOP or Gravity.START, WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE))
         card.animate().alpha(1f).translationY(0f).setDuration(dur(300)).start()
         cardWin = holder
+        // OCR ekran görüntüsü kaydedildikten sonra arka planda biter; hazır olunca yazıyı göster (en çok 8 sn bekler).
+        ocrView?.let { v ->
+            var tries = 0
+            val poll = object : Runnable {
+                override fun run() {
+                    if (cardWin !== holder) return
+                    val t = Info.readOcr(file).trim()
+                    if (t.isNotEmpty()) { v.text = t; v.visibility = View.VISIBLE; return }
+                    if (++tries < 27) main.postDelayed(this, 300)
+                }
+            }
+            main.postDelayed(poll, 300)
+        }
         autoDismiss?.let { main.removeCallbacks(it) }
         autoDismiss = Runnable { if (shotFile == file) dismissCapture() }
         main.postDelayed(autoDismiss!!, AUTO_DISMISS_MS)
     }
 
     private var autoDismiss: Runnable? = null
+    private var ocrView: TextView? = null
     private val AUTO_DISMISS_MS = 6000L
 
     private fun action(label: String, color: Int, onClick: () -> Unit) =
