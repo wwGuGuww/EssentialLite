@@ -210,7 +210,10 @@ class BootReceiver : BroadcastReceiver() {
     override fun onReceive(ctx: Context, intent: Intent) {
         val pending = goAsync()
         Thread {
-            try { Reminders.rescheduleAll(ctx.applicationContext) } finally { pending.finish() }
+            try {
+                Reminders.rescheduleAll(ctx.applicationContext)
+                if (Prefs.get(ctx, "batt_on", false)) BatteryWatch.schedule(ctx.applicationContext)
+            } finally { pending.finish() }
         }.start()
     }
 }

@@ -39,7 +39,8 @@ object ToolUi {
     val ICON_CLOCK = listOf("0011100", "0100010", "1001001", "1001101", "1000001", "0100010", "0011100")
     val ICON_STOPWATCH = listOf("0011100", "0001000", "0111110", "1001001", "1001101", "1000001", "0111110")
     val ICON_CALC = listOf("0111110", "0100010", "0111110", "0000000", "1010101", "0000000", "1010101")
-    val ICON_PAUSE = listOf("0000000", "0110110", "0110110", "0110110", "0110110", "0110110", "0000000")
+    val ICON_LEVEL = listOf("0011100", "0100010", "1001001", "1011101", "1001001", "0100010", "0011100")
+    val ICON_PAUSE =listOf("0000000", "0110110", "0110110", "0110110", "0110110", "0110110", "0000000")
 
     fun dp(ctx: Context, v: Int) = (v * ctx.resources.displayMetrics.density).toInt()
 
@@ -91,7 +92,7 @@ object ToolUi {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             addView(Ui.text(a, "", 10f, Ui.GREY).apply {
-                text = Ui.withDot("ARAÇLAR · 4", Ui.RED)
+                text = Ui.withDot("ARAÇLAR · 6", Ui.RED)
                 letterSpacing = 0.18f
             }, LinearLayout.LayoutParams(0, WRAP, 1f))
             addView(Ui.text(a, "TÜMÜ →", 10f, Ui.WHITE, bold = true).apply {
@@ -177,13 +178,33 @@ class ToolsActivity : BaseActivity() {
         val swTile = tile("KRONOMETRE", DotIcon(this, ToolUi.ICON_STOPWATCH, Ui.WHITE, 32), StopwatchActivity::class.java)
         val calcTile = tile("HESAP", DotIcon(this, ToolUi.ICON_CALC, Ui.WHITE, 32), CalcActivity::class.java)
         val passTile = tile("ŞİFRE ÜRETİCİ", DotIcon(this, Ui.ICON_LOCK, Ui.WHITE, 32), PasswordActivity::class.java)
+        val levelTile = tile("SU TERAZİSİ", DotIcon(this, ToolUi.ICON_LEVEL, Ui.WHITE, 32), LevelActivity::class.java)
+        val snap = BatteryWatch.snapshot(this)
+        val battBottom = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            addView(LinearLayout(this@ToolsActivity).apply {
+                orientation = LinearLayout.HORIZONTAL
+                for (i in 0 until 10) {
+                    addView(View(this@ToolsActivity).apply {
+                        background = Ui.rounded(this@ToolsActivity, if (i < Math.round(snap.level / 10f)) Ui.WHITE else Ui.OFF, 2f)
+                    }, LinearLayout.LayoutParams(0, dp(22), 1f).apply { setMargins(0, 0, if (i < 9) dp(3) else 0, 0) })
+                }
+            }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+            addView(LinearLayout(this@ToolsActivity).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.BOTTOM
+                addView(Ui.display(this@ToolsActivity, snap.level.toString(), 32f))
+                addView(Ui.display(this@ToolsActivity, "%", 14f, Ui.GREY))
+            }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { setMargins(0, dp(8), 0, 0) })
+        }
+        val battTile = tile("PİL", battBottom, BatteryActivity::class.java)
 
         val body = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             addView(LinearLayout(this@ToolsActivity).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.BOTTOM
-                addView(Ui.display(this@ToolsActivity, "04", 56f), LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+                addView(Ui.display(this@ToolsActivity, "06", 56f), LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
                 addView(Ui.text(this@ToolsActivity, "ARAÇ", 10f, Ui.GREY).apply { letterSpacing = 0.16f })
             }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { setMargins(0, 0, 0, dp(14)) })
             addView(clockTile, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(148)))
@@ -191,6 +212,11 @@ class ToolsActivity : BaseActivity() {
                 orientation = LinearLayout.HORIZONTAL
                 addView(swTile, LinearLayout.LayoutParams(0, dp(148), 1f).apply { setMargins(0, 0, dp(5), 0) })
                 addView(calcTile, LinearLayout.LayoutParams(0, dp(148), 1f).apply { setMargins(dp(5), 0, 0, 0) })
+            }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { setMargins(0, dp(10), 0, 0) })
+            addView(LinearLayout(this@ToolsActivity).apply {
+                orientation = LinearLayout.HORIZONTAL
+                addView(battTile, LinearLayout.LayoutParams(0, dp(148), 1f).apply { setMargins(0, 0, dp(5), 0) })
+                addView(levelTile, LinearLayout.LayoutParams(0, dp(148), 1f).apply { setMargins(dp(5), 0, 0, 0) })
             }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { setMargins(0, dp(10), 0, 0) })
             addView(passTile, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(148)).apply { setMargins(0, dp(10), 0, 0) })
         }

@@ -119,5 +119,8 @@
         <activity android:name=".ClockActivity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".StopwatchActivity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".CalcActivity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".LevelActivity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".BatteryActivity" android:exported="false" android:screenOrientation="portrait" />
+        <receiver android:name=".BatteryReceiver" android:exported="false" />
     </application>
 </manifest>
