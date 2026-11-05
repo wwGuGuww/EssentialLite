@@ -235,7 +235,20 @@ class KeyComboService : AccessibilityService() {
         }
         try {
             vibrate()
-            openPanel()
+            if (Shot.ready()) {
+                // Panel görüntüye girmesin diye ekran önce yakalanır (yaklaşık 0,2 sn), sonra panel açılır; yazı arkada okunur.
+                Thread {
+                    val bmp = try { Shot.grab() } catch (e: Throwable) { null }
+                    main.post {
+                        if (panel == null) {
+                            try { openPanel() } catch (e: Throwable) {
+                                Store.toast(this, "PANEL HATASI: ${e.javaClass.simpleName}")
+                            }
+                            if (bmp != null) readPanelText(bmp)
+                        }
+                    }
+                }.start()
+            } else openPanel()
         } catch (e: Throwable) {
             android.util.Log.e("KeyCombo", "panel hatası", e)
             Store.toast(this, "PANEL HATASI: ${e.javaClass.simpleName}")
@@ -259,8 +272,10 @@ class KeyComboService : AccessibilityService() {
             alpha = 0f
             visibility = View.GONE
         }
+        // Panel dışındaki boş yere dokunmak paneli kapatır (panelin kendisi bu perdenin üstündeki ayrı pencere).
+        s.setOnClickListener { hidePanel() }
         wm().addView(s, ov(WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.MATCH_PARENT,
-            Gravity.TOP, WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE))
+            Gravity.TOP, WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE))
         val c = FrameLayout(this).apply {
             setPadding(dp(12), 0, dp(12), dp(24))
             visibility = View.GONE
@@ -396,6 +411,23 @@ class KeyComboService : AccessibilityService() {
             background = Ui.rounded(ctx, Ui.BG, 32f, Ui.BORDER2)
             setPadding(dp(16), dp(6), dp(16), dp(18))
             addView(header("", onClose = { hidePanel() }))
+            // Panel açılırken ekrandaki yazı okunur; yazıya dokunmak paneli kapatmaz, basılı tutmak kopyalar.
+            addView(Ui.text(ctx, "", 11f, Ui.GREY).apply {
+                letterSpacing = 0.04f
+                setLineSpacing(0f, 1.35f)
+                maxLines = 5
+                ellipsize = android.text.TextUtils.TruncateAt.END
+                setPadding(dp(4), dp(8), dp(4), dp(4))
+                visibility = View.GONE
+                isClickable = true
+                setOnLongClickListener {
+                    (getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager)
+                        .setPrimaryClip(android.content.ClipData.newPlainText("EL", panelText))
+                    Store.toast(ctx, "METİN KOPYALANDI")
+                    true
+                }
+                panelOcr = this
+            })
             addView(tiles)
             addView(ai, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(64)).apply {
                 setMargins(dp(4), dp(8), dp(4), 0)
@@ -931,6 +963,28 @@ class KeyComboService : AccessibilityService() {
 
     private var autoDismiss: Runnable? = null
     private var ocrView: TextView? = null
+    private var panelOcr: TextView? = null
+    private var panelText = ""
+
+    /** Panelin açıldığı andaki ekran görüntüsünden yazıyı okur (cihazda, ağ yok); hazır olunca panelde gösterir. */
+    private fun readPanelText(bmp: Bitmap) {
+        panelText = ""
+        Thread {
+            val text = try {
+                val big = maxOf(bmp.width, bmp.height)
+                val scaled = if (big > 2600) Bitmap.createScaledBitmap(bmp, bmp.width * 2600 / big, bmp.height * 2600 / big, true) else bmp
+                val rec = com.google.mlkit.vision.text.TextRecognition.getClient(com.google.mlkit.vision.text.latin.TextRecognizerOptions.DEFAULT_OPTIONS)
+                try {
+                    com.google.android.gms.tasks.Tasks.await(rec.process(com.google.mlkit.vision.common.InputImage.fromBitmap(scaled, 0)), 20, java.util.concurrent.TimeUnit.SECONDS).text.trim()
+                } finally { rec.close(); if (scaled !== bmp) scaled.recycle(); bmp.recycle() }
+            } catch (e: Throwable) { "" }
+            main.post {
+                panelText = text
+                val v = panelOcr
+                if (panel != null && v != null && text.isNotEmpty()) { v.text = text; v.visibility = View.VISIBLE }
+            }
+        }.start()
+    }
     private val AUTO_DISMISS_MS = 6000L
 
     private fun action(label: String, color: Int, onClick: () -> Unit) =
