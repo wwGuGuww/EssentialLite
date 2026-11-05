@@ -271,3 +271,13 @@ server.listen(HTTP_PORT, '127.0.0.1', () => {
   console.log('\n  ESSENTIAL ● LITE · PC\n  Tarayıcıda aç: ' + url + '\n  Telefon bu ağda (' + lanIp() + ') olmalı.\n');
   if (!process.argv.includes('--no-open')) execFile('cmd', ['/c', 'start', '', url], () => {});
 });
+
+// Port zaten kullanımdaysa (uygulama zaten açık) çökmek yerine sadece sayfayı aç.
+const busy = (e) => {
+  if (e.code === 'EADDRINUSE') {
+    console.log('\n  Essential Lite zaten çalışıyor. Sayfa açılıyor: http://localhost:' + HTTP_PORT + '\n');
+    execFile('cmd', ['/c', 'start', '', 'http://localhost:' + HTTP_PORT], () => process.exit(0));
+  } else { console.error(e); }
+};
+server.on('error', busy);
+tcp.on('error', busy);
