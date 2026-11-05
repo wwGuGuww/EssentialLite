@@ -32,6 +32,22 @@ open class BaseActivity : Activity() {
         setTheme(if (Ui.light) R.style.Theme_EssentialLite_Light else R.style.Theme_EssentialLite_Dark)
         super.onCreate(savedInstanceState)
         applyBars()
+        keepAboveKeyboard()
+    }
+
+    /**
+     * Android 15+ (hedef SDK 35+) kenardan kenara düzeni zorunlu kılar ve `adjustResize` etkisiz kalır:
+     * klavye içeriği örter. Klavye yüksekliği içerik alanının alt boşluğuna eklenir, böylece yazı alanı
+     * klavyenin üstünde kalır.
+     */
+    private fun keepAboveKeyboard() {
+        if (android.os.Build.VERSION.SDK_INT < 35) return
+        val content = window.decorView.findViewById<View>(android.R.id.content) ?: return
+        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(content) { v, insets ->
+            val ime = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.ime()).bottom
+            v.setPadding(0, 0, 0, ime)
+            insets
+        }
     }
 
     private fun applyBars() {

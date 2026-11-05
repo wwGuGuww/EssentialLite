@@ -122,6 +122,15 @@ object Sheet {
         sheet.translationY = dp(700).toFloat()
         sheet.animate().translationY(0f).setDuration(220).setInterpolator(DecelerateInterpolator()).start()
         scrim.animate().alpha(0.78f).setDuration(220).start()
+        if (android.os.Build.VERSION.SDK_INT >= 35) {
+            // Klavye girişi örtmesin: sayfanın alt kenarı klavye yüksekliği kadar yukarı alınır.
+            androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(sheet) { v, insets ->
+                val ime = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.ime()).bottom
+                (v.layoutParams as FrameLayout.LayoutParams).bottomMargin = ime
+                v.requestLayout()
+                insets
+            }
+        }
         field.requestFocus()
     }
 }
