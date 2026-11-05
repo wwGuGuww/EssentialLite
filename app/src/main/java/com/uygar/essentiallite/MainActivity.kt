@@ -256,7 +256,8 @@ class MainActivity : BaseActivity(), Shizuku.OnRequestPermissionResultListener {
             setPadding(dp(20), dp(52), dp(20), dp(150))
             addView(header)
             addView(summary, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { setMargins(0, dp(20), 0, 0) })
-            addView(filterRow, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { setMargins(0, dp(12), 0, 0) })
+            addView(ToolUi.homeStrip(this@MainActivity), LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { setMargins(0, dp(18), 0, 0) })
+            addView(filterRow, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { setMargins(0, dp(16), 0, 0) })
             addView(quickScroll, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { setMargins(0, dp(10), 0, 0) })
             addView(searchRow, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { setMargins(0, dp(12), 0, 0) })
             addView(recentRow, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { setMargins(0, dp(10), 0, 0) })
@@ -1515,7 +1516,7 @@ class MainActivity : BaseActivity(), Shizuku.OnRequestPermissionResultListener {
                 cornerRadii = floatArrayOf(32 * d, 32 * d, 32 * d, 32 * d, 0f, 0f, 0f, 0f)
                 setStroke((1 * d).toInt(), Ui.BORDER2)
             }
-            setPadding(dp(20), dp(14), dp(20), dp(32))
+            setPadding(dp(20), dp(12), dp(20), dp(24))
             addView(LinearLayout(this@MainActivity).apply {
                 gravity = Gravity.CENTER
                 orientation = LinearLayout.HORIZONTAL
@@ -1529,9 +1530,9 @@ class MainActivity : BaseActivity(), Shizuku.OnRequestPermissionResultListener {
                 gravity = Gravity.CENTER_VERTICAL
                 addView(Ui.kindLabel(this@MainActivity, e.kind), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
                 addView(Ui.text(this@MainActivity, Store.stamp(e.time), 11f, Ui.GREY).apply { letterSpacing = 0.14f })
-            }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { setMargins(0, dp(20), 0, dp(10)) })
+            }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { setMargins(0, dp(14), 0, dp(6)) })
             if (e.preview.isNotEmpty()) {
-                addView(Ui.text(this@MainActivity, e.text.trim(), 13f, Ui.GREY2).apply {
+                addView(Ui.text(this@MainActivity, e.text.trim(), 12f, Ui.GREY2).apply {
                     maxLines = 2
                     ellipsize = android.text.TextUtils.TruncateAt.END
                     setLineSpacing(0f, 1.15f)
@@ -1580,13 +1581,13 @@ class MainActivity : BaseActivity(), Shizuku.OnRequestPermissionResultListener {
         LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(64))
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(46))
             if (divider) {
                 foreground = null
             }
-            addView(Ui.text(this@MainActivity, label, 14f, color, bold = true).apply { letterSpacing = 0.18f },
+            addView(Ui.text(this@MainActivity, label, 11f, color, bold = true).apply { letterSpacing = 0.14f },
                 LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
-            addView(DotIcon(this@MainActivity, icon, color, 27), LinearLayout.LayoutParams(dp(27), dp(27)))
+            addView(DotIcon(this@MainActivity, icon, color, 18), LinearLayout.LayoutParams(dp(18), dp(18)))
             Ui.pressAnim(this)
             setOnClickListener { onClick() }
         }
