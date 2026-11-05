@@ -283,6 +283,14 @@ class KeyComboService : AccessibilityService() {
             visibility = View.GONE
             onEmpty = { hidePanel() }
             onSelection = { _, count -> updateSelectionPill(count) }
+            onCopy = { text ->
+                if (text.isNotEmpty()) {
+                    (getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager)
+                        .setPrimaryClip(android.content.ClipData.newPlainText("EL", text))
+                    Store.toast(this@KeyComboService, "KOPYALANDI")
+                    pick?.clearSelection()
+                }
+            }
         }
         wm().addView(pk, ov(WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.MATCH_PARENT,
             Gravity.TOP or Gravity.START, WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
@@ -987,11 +995,11 @@ class KeyComboService : AccessibilityService() {
         if (panel == null) return
         val p = pick
         if (count > 0) {
-            v.text = "● KOPYALA · $count SATIR"
+            v.text = "● KOPYALA · $count KELİME"
             v.setTextColor(Ui.WHITE)
             v.visibility = View.VISIBLE
         } else if (p != null && p.lineCount > 0) {
-            v.text = "YAZIYA DOKUN · BASILI TUTUP SÜRÜKLE"
+            v.text = "KELİMEYE DOKUN · UÇLARINDAN GENİŞLET"
             v.setTextColor(Ui.GREY)
             v.visibility = View.VISIBLE
         } else v.visibility = View.GONE
@@ -1001,7 +1009,7 @@ class KeyComboService : AccessibilityService() {
     private fun readPanelText(bmp: Bitmap) {
         val dm = resources.displayMetrics
         Thread {
-            val found: List<OcrPick.Line> = try {
+            val found: List<OcrPick.Word> = try {
                 val big = maxOf(bmp.width, bmp.height)
                 val scaled = if (big > 2600) Bitmap.createScaledBitmap(bmp, bmp.width * 2600 / big, bmp.height * 2600 / big, true) else bmp
                 val sx = dm.widthPixels / scaled.width.toFloat()
@@ -1009,17 +1017,20 @@ class KeyComboService : AccessibilityService() {
                 val rec = com.google.mlkit.vision.text.TextRecognition.getClient(com.google.mlkit.vision.text.latin.TextRecognizerOptions.DEFAULT_OPTIONS)
                 try {
                     val res = com.google.android.gms.tasks.Tasks.await(rec.process(com.google.mlkit.vision.common.InputImage.fromBitmap(scaled, 0)), 20, java.util.concurrent.TimeUnit.SECONDS)
-                    res.textBlocks.flatMap { it.lines }.mapNotNull { l ->
-                        val b = l.boundingBox ?: return@mapNotNull null
-                        if (l.text.isBlank()) null
-                        else OcrPick.Line(l.text, android.graphics.RectF(b.left * sx, b.top * sy, b.right * sx, b.bottom * sy))
+                    // Kelime kelime: her kelime kendi kutusuyla, hangi satırda olduğu bilgisiyle.
+                    res.textBlocks.flatMap { it.lines }.flatMapIndexed { li, l ->
+                        l.elements.mapNotNull { el ->
+                            val b = el.boundingBox ?: return@mapNotNull null
+                            if (el.text.isBlank()) null
+                            else OcrPick.Word(el.text, android.graphics.RectF(b.left * sx, b.top * sy, b.right * sx, b.bottom * sy), li)
+                        }
                     }
                 } finally { rec.close(); if (scaled !== bmp) scaled.recycle(); bmp.recycle() }
             } catch (e: Throwable) { emptyList() }
             main.post {
                 val p = pick
                 if (panel != null && p != null && found.isNotEmpty()) {
-                    p.setLines(found)
+                    p.setWords(found)
                     p.visibility = View.VISIBLE
                     updateSelectionPill(0)
                 }
