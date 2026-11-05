@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<title>Essential Lite — PC</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link href="https://fonts.googleapis.com/css2?family=Doto:wght@400;700;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--red:#F0303A;--grey:#8C8C8C;--b:#222;--s:#0B0B0B}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:#000;color:#fff;font-family:'DM Mono',ui-monospace,monospace}
+.doto{font-family:'Doto','DM Mono',monospace;font-weight:900}
+button{font-family:inherit;cursor:pointer;color:#fff}
+.pk{transition:transform 140ms cubic-bezier(.3,1.4,.5,1),border-color 160ms}.pk:active{transform:scale(.96);border-color:#fff}
+.scr{scrollbar-width:none}.scr::-webkit-scrollbar{display:none}
+@keyframes riseIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes breathe{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes ripple{0%{transform:scale(.3);opacity:.9}100%{transform:scale(2.2);opacity:0}}
+@keyframes notifIn{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:none}}
+@keyframes glow{0%,100%{box-shadow:0 0 0 0 rgba(240,48,58,.5)}60%{box-shadow:0 0 0 10px rgba(240,48,58,0)}}
+@keyframes lock{0%{transform:scale(1.08);opacity:.4}100%{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){*{animation-duration:1ms!important;transition-duration:1ms!important}}
+.view{display:none;height:100vh;flex-direction:column}.view.on{display:flex}
+header{flex:none;height:52px;display:flex;align-items:center;gap:24px;padding:0 20px;border-bottom:1px solid var(--b)}
+.pill{height:32px;border:1px solid var(--b);border-radius:16px;display:flex;align-items:center;padding:0 16px;gap:10px;font-size:12px;letter-spacing:.1em;color:var(--grey)}
+.btn{height:48px;background:transparent;border:1px solid #333;border-radius:24px;padding:0 18px;font-size:11px;font-weight:500;letter-spacing:.16em}
+.dotbar{display:grid;grid-template-columns:repeat(40,minmax(0,1fr))}.dotbar i{display:block;justify-self:center;width:4px;height:4px;border-radius:50%}
+.red{color:var(--red)}
+</style>
+</head>
+<body>
+
+<!-- Eşleştirme -->
+<div id="vPair" class="view on">
+<header><span class="pill" style="flex:1;max-width:420px"><span class="red">●</span>essential.link</span>
+<span style="margin-left:auto;font-size:11px;letter-spacing:.16em;color:var(--grey)">ESSENTIAL <span class="red">●</span> LITE · PC</span></header>
+<div style="flex:1;min-height:0;display:grid;grid-template-columns:1fr 520px">
+<section style="padding:64px 72px 40px;display:flex;flex-direction:column;justify-content:space-between;animation:riseIn 600ms 60ms backwards">
+<div><div style="font-size:12px;letter-spacing:.22em;color:var(--grey)"><span class="red" style="animation:breathe 2.4s infinite">●</span> TELEFON ↔ PC</div>
+<div class="doto" style="margin-top:26px;font-size:clamp(64px,9vw,128px);line-height:.8;letter-spacing:-.01em">TELEFONUNU<br>BU PC'YE<br>BAĞLA</div></div>
+<ol id="steps" style="list-style:none;margin:0;padding:0;max-width:540px"></ol>
+</section>
+<section style="border-left:1px solid var(--b);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:30px;background:var(--s);animation:riseIn 600ms 160ms backwards">
+<div id="qrBox" style="position:relative;width:340px;height:340px;padding:22px;border:1px solid #2A2A2A;border-radius:32px;background:#000;transition:opacity 240ms">
+<div id="qr" style="width:296px;height:296px"></div>
+<span style="position:absolute;left:50%;top:50%;width:38px;height:38px;margin:-19px 0 0 -19px;border-radius:50%;background:#000;border:1px solid var(--red);display:flex;align-items:center;justify-content:center;color:var(--red);font-size:14px">●</span>
+</div>
+<div id="codeBox" style="display:none;width:340px;text-align:center"><div style="font-size:11px;letter-spacing:.18em;color:var(--grey)">ONAY KODU · TELEFONDAKİYLE AYNI MI?</div><div id="code" style="display:flex;gap:6px;margin-top:10px"></div></div>
+<div style="width:340px;display:flex;flex-direction:column;gap:12px">
+<div style="display:flex;justify-content:space-between;font-size:11px;letter-spacing:.16em"><span style="color:var(--grey)">KOD YENİLENİYOR</span><span id="left">60 SN</span></div>
+<div id="bar" class="dotbar"></div>
+<div style="display:flex;justify-content:space-between;font-size:11px;letter-spacing:.12em;color:var(--grey)"><span><span id="stDot" class="red" style="animation:breathe 1.4s infinite">●</span> <span id="stTxt">TELEFON BEKLENİYOR</span></span><span id="sid">OTURUM</span></div>
+<button id="cp" style="background:none;border:0;padding:0;font-size:10px;letter-spacing:.14em;color:#8C8C8C;text-align:left;text-decoration:underline">KODU METİN OLARAK KOPYALA</button>
+</div>
+</section></div></div>
+
+<!-- Oturum -->
+<div id="vSess" class="view">
+<header><span class="pill" style="flex:1;max-width:420px"><span class="red">●</span>essential.link / oturum</span>
+<span style="margin-left:auto;font-size:11px;letter-spacing:.16em;color:var(--grey)"><span class="red" style="animation:breathe 2s infinite">●</span> UÇTAN UCA ŞİFRELİ · <span id="ping">--</span> MS</span></header>
+<div style="flex:1;min-height:0;display:grid;grid-template-columns:260px 1fr 400px">
+<aside style="border-right:1px solid var(--b);padding:24px 20px;display:flex;flex-direction:column;gap:22px;animation:riseIn 520ms 40ms backwards">
+<div style="border:1px solid var(--b);border-radius:28px;background:var(--s);padding:18px;display:flex;flex-direction:column;gap:14px">
+<div style="font-size:10px;letter-spacing:.18em;color:var(--grey)">TELEFON</div>
+<div id="phName" class="doto" style="font-size:26px;line-height:.95">TELEFON</div>
+<div id="cells" style="display:flex;gap:3px"></div>
+<div style="display:flex;justify-content:space-between;font-size:10px;letter-spacing:.12em;color:var(--grey)"><span id="phBat">% --</span><span id="phNet">Wİ-Fİ</span></div></div>
+<nav id="nav" style="display:flex;flex-direction:column;gap:4px"></nav>
+<button class="btn pk" id="bye" style="margin-top:auto;color:var(--red)">BAĞLANTIYI KES</button>
+</aside>
+
+<section style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;min-width:0;animation:riseIn 520ms 100ms backwards">
+<div id="pScreen" style="display:flex;flex-direction:column;align-items:center;gap:16px">
+<div id="liveTxt" style="display:flex;align-items:center;gap:10px;font-size:10px;letter-spacing:.18em;color:var(--grey)"><span style="width:8px;height:8px;border-radius:50%;background:var(--red);animation:glow 1.8s infinite"></span><span id="liveMsg">EKRAN KAPALI · TELEFONDA "KONTROL"E İZİN VER</span></div>
+<div style="position:relative;width:300px;height:620px;border:1px solid #333;border-radius:44px;background:#000;overflow:hidden">
+<img id="scr" alt="" draggable="false" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:none;user-select:none;touch-action:none;cursor:pointer">
+<div id="scrOff" class="doto" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;font-size:30px;line-height:1;color:#333;padding:30px">EKRAN<br>KAPALI</div>
+<div id="rip"></div></div>
+<div id="keys" style="display:flex;gap:8px"></div></div>
+<div id="pFiles" style="display:none;width:520px;max-width:90%"><div class="red" style="font-size:10px;letter-spacing:.2em;padding-bottom:10px">● DOSYALAR</div><div id="fileList"></div>
+<div style="margin-top:14px;font-size:10px;letter-spacing:.1em;color:var(--grey)">Telefondan gelenler İndirilenler klasörüne kaydedilir.</div></div>
+<div id="pClip" style="display:none;width:520px;max-width:90%"><div class="red" style="font-size:10px;letter-spacing:.2em;padding-bottom:10px">● PANO</div>
+<textarea id="clipIn" placeholder="Telefona yapıştırılacak metin…" style="width:100%;height:120px;background:#000;border:1px solid #333;border-radius:24px;padding:16px;color:#fff;font-family:inherit;font-size:12px;resize:none;outline:none"></textarea>
+<button class="btn pk" id="clipSend" style="margin-top:10px;border-color:#fff">TELEFONA GÖNDER</button>
+<div id="clipLast" style="margin-top:18px;font-size:11px;line-height:1.6;color:var(--grey)"></div></div>
+</section>
+
+<aside style="border-left:1px solid var(--b);display:flex;flex-direction:column;min-height:0;animation:riseIn 520ms 160ms backwards">
+<div style="flex:none;display:flex;align-items:center;justify-content:space-between;padding:22px 24px 14px"><span style="font-size:11px;font-weight:500;letter-spacing:.18em"><span class="red">●</span> BİLDİRİMLER</span><span id="nCount" class="doto" style="font-size:30px;line-height:.9">00</span></div>
+<div id="notifs" class="scr" style="flex:1;min-height:0;overflow-y:auto;padding:0 20px;display:flex;flex-direction:column;gap:8px"></div>
+<div id="drop" style="flex:none;margin:14px 20px 20px;border:1px dashed #333;border-radius:28px;padding:18px;display:flex;flex-direction:column;gap:12px;transition:border-color 200ms">
+<div style="font-size:10px;letter-spacing:.18em;color:var(--grey)">DOSYAYI BURAYA SÜRÜKLE → TELEFON</div><div id="dropList"></div></div>
+</aside></div></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+let st = { status: 'wait', notifs: [], ping: 0 }, qrInfo = null, navIdx = 0, controlOn = false, files = {}, replying = null;
+
+const STEPS = ['Telefonda Essential Lite → Araçlar → PC bağlantısı', '“QR ile bağlan”a bas ve bu kodu çerçeveye al', 'Telefondaki 6 haneli kodun burada da aynı olduğunu onayla'];
+function renderSteps() {
+  const idx = st.status === 'confirm' ? 2 : 1;
+  $('steps').innerHTML = STEPS.map((l, i) => `<li style="display:flex;align-items:center;gap:20px;padding:18px 0;border-top:1px solid #1E1E1E"><span style="width:14px;height:14px;border-radius:50%;border:1px solid ${i <= idx ? '#F0303A' : '#333'};background:${i < idx ? '#F0303A' : 'transparent'}"></span><span class="red" style="font-size:12px;letter-spacing:.16em;width:28px">0${i + 1}</span><span style="font-size:15px;letter-spacing:.06em;line-height:1.5;color:${i <= idx ? '#fff' : '#8C8C8C'}">${l}</span></li>`).join('');
+}
+function renderQr() {
+  if (!qrInfo) return;
+  const rows = qrInfo.rows, n = rows.length, quiet = 2, N = n + quiet * 2, cell = 296 / N;
+  let c = '';
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+    if (rows[y][x] !== '1') continue;
+    c += `<rect x="${((x + quiet) * cell).toFixed(2)}" y="${((y + quiet) * cell).toFixed(2)}" width="${(cell + .4).toFixed(2)}" height="${(cell + .4).toFixed(2)}"/>`;
+  }
+  // Okunabilirlik için klasik düzen: açık zemin, koyu kareler.
+  $('qr').innerHTML = `<svg width="296" height="296" viewBox="0 0 296 296" role="img" aria-label="Eşleştirme QR kodu"><rect width="296" height="296" rx="14" fill="#fff"/><g fill="#000">${c}</g></svg>`;
+  $('sid').textContent = 'OTURUM ' + qrInfo.sid;
+}
+function renderBar() {
+  if (!qrInfo) return;
+  const left = Math.max(0, qrInfo.left - Math.floor((Date.now() - qrInfo.at) / 1000));
+  const lit = Math.round((left / 60) * 40);
+  $('bar').innerHTML = Array.from({ length: 40 }, (_, i) => `<i style="background:${i < lit ? (lit < 8 ? '#F0303A' : '#fff') : '#2A2A2A'}"></i>`).join('');
+  $('left').textContent = left + ' SN';
+  $('qrBox').style.opacity = left < 2 ? .2 : 1;
+}
+setInterval(renderBar, 500);
+
+function renderState() {
+  const live = st.status === 'live';
+  $('vPair').classList.toggle('on', !live);
+  $('vSess').classList.toggle('on', live);
+  const conf = st.status === 'confirm';
+  $('codeBox').style.display = conf ? 'block' : 'none';
+  $('qrBox').style.display = conf ? 'none' : 'block';
+  $('stTxt').textContent = conf ? 'KODU TELEFONDA ONAYLA' : 'TELEFON BEKLENİYOR';
+  if (conf) $('code').innerHTML = String(st.code).split('').map((v, i) => `<span class="doto" style="flex:1;text-align:center;font-size:64px;line-height:.9;animation:lock 360ms ${i * 60}ms backwards">${v}</span>`).join('');
+  renderSteps();
+  if (!live) return;
+  const p = st.phone || {};
+  $('phName').innerHTML = esc(p.name || 'TELEFON').replace(' ', '<br>');
+  const bat = p.bat == null ? 0 : p.bat;
+  $('cells').innerHTML = Array.from({ length: 10 }, (_, i) => `<span style="flex:1;height:14px;border-radius:2px;background:${i < Math.round(bat / 10) ? '#fff' : '#1E1E1E'}"></span>`).join('');
+  $('phBat').textContent = p.bat == null ? '% --' : '%' + p.bat + ' PİL';
+  $('phNet').textContent = (p.net || 'Wİ-Fİ').toUpperCase();
+  $('ping').textContent = st.ping || '--';
+  renderNotifs(); renderNav();
+}
+function renderNav() {
+  const N = [['EKRAN', ''], ['BİLDİRİM', String(st.notifs.length)], ['DOSYALAR', String(Object.keys(files).length || '')], ['PANO', '']];
+  $('nav').innerHTML = N.map((n, i) => `<button class="pk" data-i="${i}" style="height:48px;padding:0 16px;display:flex;align-items:center;justify-content:space-between;background:${navIdx === i ? '#141414' : 'transparent'};border:1px solid ${navIdx === i ? '#fff' : 'transparent'};border-radius:24px;color:${navIdx === i ? '#fff' : '#8C8C8C'};font-size:11px;font-weight:500;letter-spacing:.16em"><span><span class="red" style="opacity:${navIdx === i ? 1 : 0}">●</span> ${n[0]}</span><span>${n[1]}</span></button>`).join('');
+  $('pScreen').style.display = navIdx === 0 || navIdx === 1 ? 'flex' : 'none';
+  $('pFiles').style.display = navIdx === 2 ? 'block' : 'none';
+  $('pClip').style.display = navIdx === 3 ? 'block' : 'none';
+}
+$('nav').onclick = (e) => { const b = e.target.closest('button'); if (b) { navIdx = +b.dataset.i; renderNav(); renderFiles(); } };
+
+function renderNotifs() {
+  const list = st.notifs;
+  $('nCount').textContent = String(list.length).padStart(2, '0');
+  if (!list.length) { $('notifs').innerHTML = '<div style="padding:40px 0;text-align:center;font-size:11px;letter-spacing:.16em;color:#8C8C8C">HEPSİ TEMİZ</div>'; return; }
+  $('notifs').innerHTML = list.map((n) => `<article data-id="${esc(n.id)}" style="border:1px solid #222;border-radius:24px;background:#0B0B0B;padding:14px 16px;display:flex;flex-direction:column;gap:10px;animation:notifIn 420ms cubic-bezier(.2,.9,.2,1) backwards">
+<div style="display:flex;align-items:center;gap:8px;font-size:10px;letter-spacing:.16em"><span style="width:6px;height:6px;border-radius:50%;background:#F0303A"></span><span style="font-weight:500">${esc(n.app)}</span><span style="margin-left:auto;color:#8C8C8C">${esc(n.time)}</span></div>
+<div style="font-size:12px;font-weight:500;letter-spacing:.04em">${esc(n.who)}</div><div style="font-size:12px;line-height:1.55;color:#B3B3B3">${esc(n.text)}</div>
+<div class="rbox" style="display:${replying === n.id ? 'flex' : 'none'};gap:8px"><input type="text" placeholder="YANITLA…" style="flex:1;min-width:0;height:40px;padding:0 14px;background:#000;border:1px solid #333;border-radius:20px;outline:none;color:#fff;font-family:inherit;font-size:11px;letter-spacing:.08em"><button class="pk" data-act="send" style="height:40px;padding:0 16px;background:transparent;border:1px solid #fff;border-radius:20px;font-size:10px;font-weight:500;letter-spacing:.14em">GÖNDER</button></div>
+<div style="display:flex;gap:8px">${n.canReply ? '<button class="pk" data-act="reply" style="height:36px;padding:0 16px;background:transparent;border:1px solid #333;border-radius:18px;font-size:10px;font-weight:500;letter-spacing:.14em">YANITLA</button>' : ''}<button class="pk" data-act="dismiss" style="height:36px;padding:0 16px;background:transparent;border:1px solid #222;border-radius:18px;color:#8C8C8C;font-size:10px;font-weight:500;letter-spacing:.14em">KAPAT</button></div></article>`).join('');
+}
+$('notifs').onclick = (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  const id = b.closest('article').dataset.id, act = b.dataset.act;
+  if (act === 'reply') { replying = replying === id ? null : id; renderNotifs(); const i = document.querySelector(`article[data-id="${CSS.escape(id)}"] input`); if (i) i.focus(); }
+  if (act === 'dismiss') post('dismiss', { id });
+  if (act === 'send') { const t = b.closest('article').querySelector('input').value.trim(); if (t) { post('reply', { id, text: t }); replying = null; } }
+};
+$('notifs').onkeydown = (e) => { if (e.key === 'Enter' && e.target.tagName === 'INPUT') e.target.closest('article').querySelector('[data-act=send]').click(); };
+
+function renderFiles() {
+  const rows = Object.values(files).reverse();
+  const html = (list) => list.map((f) => { const n = Math.round(f.pct * .36); return `<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;font-size:10px;letter-spacing:.1em"><span>${esc(f.name)} ${f.dir === 'in' ? '← TELEFON' : '→ TELEFON'}</span><span style="color:${f.pct >= 100 ? '#fff' : '#F0303A'}">${f.pct >= 100 ? 'TAMAM' : '%' + f.pct}</span></div><div style="display:grid;grid-template-columns:repeat(36,minmax(0,1fr));margin-top:6px">${Array.from({ length: 36 }, (_, i) => `<span style="justify-self:center;width:3px;height:3px;border-radius:50%;background:${i < n ? '#fff' : i === n ? '#F0303A' : '#2A2A2A'}"></span>`).join('')}</div></div>`; }).join('');
+  $('dropList').innerHTML = html(rows.slice(0, 2));
+  $('fileList').innerHTML = rows.length ? html(rows) : '<div style="font-size:11px;letter-spacing:.14em;color:#8C8C8C">HENÜZ AKTARIM YOK</div>';
+  renderNav();
+}
+
+// Telefon tuşları
+const KEYS = [['◂ GERİ', 'back'], ['● ANA', 'home'], ['▢ SON', 'recents'], ['SES +', 'volup'], ['SES −', 'voldown'], ['GÜÇ', 'power']];
+$('keys').innerHTML = KEYS.map((k) => `<button class="pk" data-k="${k[1]}" style="height:44px;padding:0 14px;background:transparent;border:1px solid #333;border-radius:22px;font-size:10px;font-weight:500;letter-spacing:.14em">${k[0]}</button>`).join('');
+$('keys').onclick = (e) => { const b = e.target.closest('button'); if (b) post('key', { k: b.dataset.k }); };
+
+// Ekran: dokunma / kaydırma
+const scr = $('scr');
+let down = null;
+const rel = (e) => { const r = scr.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width, y: (e.clientY - r.top) / r.height }; };
+scr.addEventListener('pointerdown', (e) => { down = { ...rel(e), t: Date.now() }; scr.setPointerCapture(e.pointerId); });
+scr.addEventListener('pointerup', (e) => {
+  if (!down) return;
+  const u = rel(e), d = Math.hypot(u.x - down.x, u.y - down.y), ms = Date.now() - down.t;
+  const r = scr.getBoundingClientRect();
+  const dot = document.createElement('span');
+  dot.style.cssText = `position:absolute;left:${e.clientX - r.left}px;top:${e.clientY - r.top}px;width:36px;height:36px;margin:-18px 0 0 -18px;border-radius:50%;border:2px solid #F0303A;pointer-events:none;animation:ripple 700ms ease-out forwards`;
+  $('rip').appendChild(dot); setTimeout(() => dot.remove(), 750);
+  if (d < 0.02) post('touch', { k: ms > 500 ? 'long' : 'tap', x: u.x, y: u.y });
+  else post('touch', { k: 'swipe', x: down.x, y: down.y, x2: u.x, y2: u.y, ms: Math.max(80, Math.min(ms, 900)) });
+  down = null;
+});
+document.addEventListener('keydown', (e) => {
+  if (!controlOn || navIdx > 1 || /INPUT|TEXTAREA/.test(document.activeElement.tagName)) return;
+  if (e.key.length === 1 && !e.ctrlKey && !e.metaKey) post('text', { s: e.key });
+  else if (e.key === 'Backspace') post('key', { k: 'del' });
+  else if (e.key === 'Enter') post('key', { k: 'enter' });
+});
+function setControl(on) {
+  controlOn = on;
+  scr.style.display = on ? 'block' : 'none';
+  $('scrOff').style.display = on ? 'none' : 'flex';
+  $('liveMsg').textContent = on ? 'CANLI · TIKLA, KAYDIR, KLAVYEYLE YAZ' : 'EKRAN KAPALI · TELEFONDA "KONTROL"E İZİN VER';
+}
+
+// Pano ve dosya
+$('clipSend').onclick = () => { const t = $('clipIn').value; if (t) { post('clip', { text: t }); $('clipIn').value = ''; $('clipLast').textContent = 'TELEFONA GÖNDERİLDİ'; } };
+const drop = $('drop');
+['dragenter', 'dragover'].forEach((ev) => document.addEventListener(ev, (e) => { e.preventDefault(); drop.style.borderColor = '#F0303A'; }));
+['dragleave', 'drop'].forEach((ev) => document.addEventListener(ev, (e) => { e.preventDefault(); drop.style.borderColor = '#333'; }));
+document.addEventListener('drop', async (e) => {
+  if (st.status !== 'live') return;
+  for (const f of e.dataTransfer.files) await fetch('/api/upload?name=' + encodeURIComponent(f.name), { method: 'POST', body: f });
+});
+$('bye').onclick = () => post('disconnect', {});
+
+function post(a, j) { return fetch('/api/' + a, { method: 'POST', body: JSON.stringify(j) }); }
+
+// Olay akışı
+function connect() {
+  const es = new EventSource('/events');
+  es.onmessage = (m) => {
+    const d = JSON.parse(m.data);
+    if (d.type === 'qr') { qrInfo = { ...d, at: Date.now() }; renderQr(); renderBar(); }
+    else if (d.type === 'state') { st = d; if (d.status !== 'live') setControl(false); renderState(); }
+    else if (d.type === 'ping') { st.ping = d.ping; $('ping').textContent = d.ping; }
+    else if (d.type === 'file') { files[d.id] = d; renderFiles(); }
+    else if (d.type === 'control') setControl(d.on);
+    else if (d.type === 'frame') { if (!controlOn) setControl(true); scr.src = 'data:image/jpeg;base64,' + d.d; }
+    else if (d.type === 'clip') $('clipLast').textContent = 'TELEFONDAN GELEN: ' + d.text;
+  };
+  es.onerror = () => { es.close(); setTimeout(connect, 1500); };
+}
+$('cp').onclick=()=>{if(qrInfo){navigator.clipboard.writeText(qrInfo.url);$('cp').textContent='KOPYALANDI';setTimeout(()=>$('cp').textContent='KODU METİN OLARAK KOPYALA',1500)}};
+renderSteps(); connect();
+</script>
+</body>
+</html>

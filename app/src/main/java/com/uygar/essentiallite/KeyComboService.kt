@@ -106,6 +106,40 @@ class KeyComboService : AccessibilityService() {
         main.post { if (panel == null) togglePanel() }
     }
 
+    // ---------- PC'den uzaktan kontrol (PC bağlantısı) ----------
+
+    /** Ekranda (x1,y1)'den (x2,y2)'ye [ms] sürede bir dokunuş çizer; aynı nokta ise dokunma / uzun basma olur. */
+    fun remoteStroke(x1: Float, y1: Float, x2: Float, y2: Float, ms: Long) {
+        val path = android.graphics.Path().apply { moveTo(x1, y1); if (x1 != x2 || y1 != y2) lineTo(x2, y2) }
+        val g = android.accessibilityservice.GestureDescription.Builder()
+            .addStroke(android.accessibilityservice.GestureDescription.StrokeDescription(path, 0, ms)).build()
+        dispatchGesture(g, null, null)
+    }
+
+    fun remoteKey(k: String) {
+        when (k) {
+            "back" -> performGlobalAction(GLOBAL_ACTION_BACK)
+            "home" -> performGlobalAction(GLOBAL_ACTION_HOME)
+            "recents" -> performGlobalAction(GLOBAL_ACTION_RECENTS)
+            "power" -> performGlobalAction(GLOBAL_ACTION_LOCK_SCREEN)
+            "volup" -> (getSystemService(AUDIO_SERVICE) as android.media.AudioManager).adjustSuggestedStreamVolume(android.media.AudioManager.ADJUST_RAISE, android.media.AudioManager.USE_DEFAULT_STREAM_TYPE, android.media.AudioManager.FLAG_SHOW_UI)
+            "voldown" -> (getSystemService(AUDIO_SERVICE) as android.media.AudioManager).adjustSuggestedStreamVolume(android.media.AudioManager.ADJUST_LOWER, android.media.AudioManager.USE_DEFAULT_STREAM_TYPE, android.media.AudioManager.FLAG_SHOW_UI)
+            "del" -> editFocused { it.dropLast(1) }
+            "enter" -> rootInActiveWindow?.findFocus(android.view.accessibility.AccessibilityNodeInfo.FOCUS_INPUT)
+                ?.performAction(android.view.accessibility.AccessibilityNodeInfo.AccessibilityAction.ACTION_IME_ENTER.id)
+        }
+    }
+
+    fun remoteText(s: String) = editFocused { it + s }
+
+    private fun editFocused(change: (String) -> String) {
+        val node = rootInActiveWindow?.findFocus(android.view.accessibility.AccessibilityNodeInfo.FOCUS_INPUT) ?: return
+        val cur = if (node.isShowingHintText) "" else node.text?.toString().orEmpty()
+        val b = android.os.Bundle()
+        b.putCharSequence(android.view.accessibility.AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, change(cur))
+        node.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_SET_TEXT, b)
+    }
+
     override fun onDestroy() {
         if (instance === this) instance = null
         stageContainer?.let { safeRemove(it) }

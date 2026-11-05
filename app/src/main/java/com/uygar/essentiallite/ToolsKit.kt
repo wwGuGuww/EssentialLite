@@ -255,7 +255,7 @@ object ToolUi {
         }
     }
 
-    const val TOOL_COUNT = 9
+    const val TOOL_COUNT = 10
 }
 
 /** 4×3 mini tuş noktaları: sırayla biri yanar (tasarım: Hesap kartı). */
@@ -316,7 +316,8 @@ class ToolsActivity : BaseActivity(), SensorEventListener {
         Tool("battery", 4, "pil şarj sağlık sistem", false), Tool("calc", 2, "hesap makinesi kdv kredi birim çevirici ölçü", false),
         Tool("timer", 1, "sayaç zamanlayıcı odak pomodoro zaman", false), Tool("stopwatch", 1, "kronometre tur zaman", false),
         Tool("level", 2, "su terazisi düzlem ölçü", false), Tool("metro", 3, "metronom bpm tempo müzik", true),
-        Tool("pass", 5, "şifre parola üretici güvenlik", true)
+        Tool("pass", 5, "şifre parola üretici güvenlik", true),
+        Tool("link", 4, "pc bağlantısı bilgisayar qr senkron dosya bildirim sistem", true)
     )
     private val cats = listOf("HEPSİ", "ZAMAN", "ÖLÇÜ", "MÜZİK", "SİSTEM", "ÜRET")
 
@@ -564,6 +565,29 @@ class ToolsActivity : BaseActivity(), SensorEventListener {
                 })
                 addView(Ui.text(this@ToolsActivity, "4/4 · ALLEGRO", 10f, Ui.GREY).apply { letterSpacing = 0.14f }, LinearLayout.LayoutParams(WRAP, WRAP).apply { setMargins(0, dp(6), 0, 0) })
             })
+            "link" -> {
+                val live = Link.live
+                box("PC BAĞLANTISI · QR", LinkActivity::class.java, {
+                    addView(LinearLayout(this@ToolsActivity).apply {
+                        orientation = LinearLayout.HORIZONTAL
+                        gravity = Gravity.CENTER_VERTICAL
+                        addView(View(this@ToolsActivity).apply { background = Ui.rounded(this@ToolsActivity, Color.TRANSPARENT, 4f, if (live) Ui.WHITE else Ui.PROG) }, LinearLayout.LayoutParams(dp(16), dp(26)))
+                        addView(DotsView(this@ToolsActivity, 24, 1, 3f, 3f).apply {
+                            colors = IntArray(24) { i -> if (live) (if (i % 6 == 2) Ui.RED else Ui.GREY2) else Ui.OFF }
+                        }, LinearLayout.LayoutParams(0, dp(3), 1f).apply { setMargins(dp(10), 0, dp(10), 0) })
+                        addView(View(this@ToolsActivity).apply { background = Ui.rounded(this@ToolsActivity, Color.TRANSPARENT, 4f, if (live) Ui.WHITE else Ui.PROG) }, LinearLayout.LayoutParams(dp(34), dp(24)))
+                    }, LinearLayout.LayoutParams(MATCH, WRAP).apply { setMargins(0, 0, 0, dp(14)) })
+                    addView(LinearLayout(this@ToolsActivity).apply {
+                        orientation = LinearLayout.HORIZONTAL
+                        addView(Ui.text(this@ToolsActivity, "", 10f, Ui.GREY).apply {
+                            val s = SpannableStringBuilder(if (live) "● ${Link.pcName} · ŞİFRELİ" else "BAĞLI DEĞİL · QR İLE BAĞLAN")
+                            if (live) s.setSpan(ForegroundColorSpan(Ui.RED), 0, 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                            text = s; letterSpacing = 0.14f; maxLines = 1
+                        }, LinearLayout.LayoutParams(0, WRAP, 1f))
+                        if (live && Link.ping > 0) addView(Ui.text(this@ToolsActivity, "${Link.ping} MS", 10f, Ui.WHITE).apply { letterSpacing = 0.14f })
+                    }, LinearLayout.LayoutParams(MATCH, WRAP))
+                })
+            }
             else -> {
                 val pw = PasswordActivity.sample(12)
                 box("ŞİFRE ÜRETİCİ", PasswordActivity::class.java, {
