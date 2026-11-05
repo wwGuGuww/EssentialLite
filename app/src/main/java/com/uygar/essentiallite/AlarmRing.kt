@@ -40,7 +40,10 @@ object NothingGlyph {
     val patterns = listOf("KAPALI" to "KAPALI", "NEFES" to "NEFES", "SERIT" to "ŞERİT", "YANIP" to "YANIP SÖN")
 
     private var gm: GlyphManager? = null
+    private var worker: Thread? = null
     @Volatile private var gen = 0
+    /** Başlat/durdur işleri sırayla çalışır; böylece yeni desen, eskinin kapanışıyla çakışmaz. */
+    private val ops = java.util.concurrent.Executors.newSingleThreadExecutor()
 
     fun supported(): Boolean = Build.VERSION.SDK_INT >= 33 && runCatching { Common.is20111() }.getOrDefault(false)
 
@@ -63,17 +66,21 @@ object NothingGlyph {
         stop()
         if (!supported() || pattern == "KAPALI") return
         val my = ++gen
-        val m = GlyphManager.getInstance(ctx.applicationContext)
-        gm = m
-        m.init(object : GlyphManager.Callback {
-            override fun onServiceConnected(c: ComponentName) {
-                if (my != gen) return
-                try { m.register(Glyph.DEVICE_20111); m.openSession() } catch (e: Throwable) { return }
-                Thread { play(m, pattern, my) }.start()
-            }
+        val app = ctx.applicationContext
+        ops.execute {
+            if (my != gen) return@execute
+            val m = GlyphManager.getInstance(app)
+            gm = m
+            m.init(object : GlyphManager.Callback {
+                override fun onServiceConnected(c: ComponentName) {
+                    if (my != gen) return
+                    try { m.register(Glyph.DEVICE_20111); m.openSession() } catch (e: Throwable) { return }
+                    worker = Thread { play(m, pattern, my) }.also { it.start() }
+                }
 
-            override fun onServiceDisconnected(c: ComponentName) {}
-        })
+                override fun onServiceDisconnected(c: ComponentName) {}
+            })
+        }
     }
 
     private fun play(m: GlyphManager, pattern: String, my: Int) {
@@ -99,14 +106,22 @@ object NothingGlyph {
         }
     }
 
+    /** Işıkları söndürür. Çalışan desen bitene kadar beklenir (geç kalan bir toggle ışığı yeniden yakmasın) ve iki kez kapatılır. */
     fun stop() {
         gen++
-        val m = gm
-        gm = null
-        if (m != null) {
-            runCatching { m.turnOff() }
-            runCatching { m.closeSession() }
-            runCatching { m.unInit() }
+        ops.execute {
+            val m = gm
+            val w = worker
+            gm = null
+            worker = null
+            if (m != null) {
+                runCatching { w?.join(800) }
+                runCatching { m.turnOff() }
+                runCatching { Thread.sleep(150) }
+                runCatching { m.turnOff() }
+                runCatching { m.closeSession() }
+                runCatching { m.unInit() }
+            }
         }
     }
 }
@@ -182,6 +197,8 @@ class AlarmRingService : Service() {
 
     override fun onDestroy() {
         h.removeCallbacks(auto)
+        // Çalma ekranı açıksa o da kapanır (otomatik susunca ışıklar yanık kalmasın).
+        sendBroadcast(Intent(AlarmRingActivity.DONE).setPackage(packageName))
         runCatching { ringtone?.stop() }
         runCatching { getSystemService(Vibrator::class.java).cancel() }
         super.onDestroy()
@@ -190,7 +207,12 @@ class AlarmRingService : Service() {
 
 /** Alarm çalarken açılan tam ekran: saat, ad ve KAPAT. Uygulama kilidi sormaz; Glyph ışıkları burada oynar. */
 class AlarmRingActivity : Activity() {
+    companion object { const val DONE = "com.uygar.essentiallite.ALARM_DONE" }
+
     private var glyph = "NEFES"
+    private val done = object : android.content.BroadcastReceiver() {
+        override fun onReceive(c: Context, i: Intent) { NothingGlyph.stop(); finish() }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         Ui.apply(this)
@@ -222,6 +244,14 @@ class AlarmRingActivity : Activity() {
             }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(64)))
         }
         setContentView(root)
+        if (Build.VERSION.SDK_INT >= 33) registerReceiver(done, android.content.IntentFilter(DONE), Context.RECEIVER_NOT_EXPORTED)
+        else @Suppress("UnspecifiedRegisterReceiverFlag") registerReceiver(done, android.content.IntentFilter(DONE))
+    }
+
+    override fun onDestroy() {
+        runCatching { unregisterReceiver(done) }
+        NothingGlyph.stop()
+        super.onDestroy()
     }
 
     override fun onResume() {
