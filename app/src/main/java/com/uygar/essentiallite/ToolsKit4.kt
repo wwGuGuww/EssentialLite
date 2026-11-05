@@ -34,7 +34,8 @@ private const val WRAP = ViewGroup.LayoutParams.WRAP_CONTENT
 
 /** Alarm kayıtları ve zamanlama (tasarım 14b). Günler Pazartesi'den Pazar'a doğru. */
 object AlarmStore {
-    class A(val id: Long, var m: Int, var label: String, var days: BooleanArray, var on: Boolean, var six: Boolean)
+    class A(val id: Long, var m: Int, var label: String, var days: BooleanArray, var on: Boolean, var six: Boolean,
+            var tone: String = "", var glyph: String = "NEFES")
 
     private const val CHANNEL = "alarm"
     private const val PREF = "essentiallite_prefs"
@@ -46,7 +47,8 @@ object AlarmStore {
         MutableList(arr.length()) { i ->
             val o = arr.getJSONObject(i)
             val d = o.getJSONArray("days")
-            A(o.getLong("id"), o.getInt("m"), o.getString("label"), BooleanArray(7) { d.getInt(it) == 1 }, o.getBoolean("on"), o.getBoolean("six"))
+            A(o.getLong("id"), o.getInt("m"), o.getString("label"), BooleanArray(7) { d.getInt(it) == 1 }, o.getBoolean("on"), o.getBoolean("six"),
+                o.optString("tone", ""), o.optString("glyph", "NEFES"))
         }
     }.getOrDefault(mutableListOf())
 
@@ -54,7 +56,8 @@ object AlarmStore {
         val arr = JSONArray()
         list.forEach { a ->
             arr.put(JSONObject().put("id", a.id).put("m", a.m).put("label", a.label)
-                .put("days", JSONArray(a.days.map { if (it) 1 else 0 })).put("on", a.on).put("six", a.six))
+                .put("days", JSONArray(a.days.map { if (it) 1 else 0 })).put("on", a.on).put("six", a.six)
+                .put("tone", a.tone).put("glyph", a.glyph))
         }
         sp(ctx).edit().putString("alarms", arr.toString()).apply()
     }
@@ -134,25 +137,13 @@ object AlarmStore {
         })
     }
 
+    /** Alarmı çaldırır: ses, titreşim ve tam ekran bildirimi [AlarmRingService] üstlenir; sesi ve Glyph desenini alarm belirler. */
     fun notifyRing(ctx: Context, id: Long, m: Int, label: String) {
-        channel(ctx)
-        val nm = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        val dismiss = PendingIntent.getBroadcast(
-            ctx, 7004, Intent(ctx, AlarmDismissReceiver::class.java).putExtra("id", id),
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-        val b = if (Build.VERSION.SDK_INT >= 26) Notification.Builder(ctx, CHANNEL) else @Suppress("DEPRECATION") Notification.Builder(ctx)
-        val time = ToolUi.p2((m / 60).toLong()) + ":" + ToolUi.p2((m % 60).toLong())
-        runCatching {
-            nm.notify(
-                id.toInt(),
-                b.setSmallIcon(R.drawable.ic_notif).setContentTitle("ALARM").setContentText("$time · $label")
-                    .setCategory(Notification.CATEGORY_ALARM).setAutoCancel(true)
-                    .setContentIntent(PendingIntent.getActivity(ctx, 7003, Intent(ctx, AlarmActivity::class.java), PendingIntent.FLAG_IMMUTABLE))
-                    .addAction(Notification.Action.Builder(Icon.createWithResource(ctx, R.drawable.ic_notif), "KAPAT", dismiss).build())
-                    .build()
-            )
-        }
+        val a = load(ctx).firstOrNull { it.id == id }
+        val intent = Intent(ctx, AlarmRingService::class.java)
+            .putExtra("id", id).putExtra("m", m).putExtra("label", label)
+            .putExtra("tone", a?.tone ?: "").putExtra("glyph", a?.glyph ?: "NEFES")
+        runCatching { ctx.startForegroundService(intent) }
     }
 }
 
@@ -177,6 +168,7 @@ class AlarmDismissReceiver : BroadcastReceiver() {
     override fun onReceive(ctx: Context, intent: Intent) {
         val id = intent.getLongExtra("id", 0)
         AlarmStore.cancelFollowUps(ctx.applicationContext, id)
+        AlarmRingService.stop(ctx.applicationContext)
         (ctx.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).cancel(id.toInt())
     }
 }
@@ -289,7 +281,7 @@ class AlarmActivity : BaseActivity() {
 
     private fun openSheet(a: AlarmStore.A?) {
         editNew = a == null
-        edit = a?.let { AlarmStore.A(it.id, it.m, it.label, it.days.copyOf(), it.on, it.six) }
+        edit = a?.let { AlarmStore.A(it.id, it.m, it.label, it.days.copyOf(), it.on, it.six, it.tone, it.glyph) }
             ?: AlarmStore.A(System.currentTimeMillis(), 420, "ALARM", booleanArrayOf(true, true, true, true, true, false, false), true, false)
         buildSheet()
         overlay.visibility = View.VISIBLE
@@ -354,6 +346,52 @@ class AlarmActivity : BaseActivity() {
             }
         }, LinearLayout.LayoutParams(MATCH, WRAP).apply { setMargins(0, dp(18), 0, 0) })
 
+        // SES: telefonun kendi alarm sesleri (sistem seçicisi)
+        panel.addView(View(this).apply { setBackgroundColor(Ui.BORDER) }, LinearLayout.LayoutParams(MATCH, dp(1)).apply { setMargins(0, dp(18), 0, 0) })
+        panel.addView(LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, dp(6), 0, dp(6))
+            addView(LinearLayout(this@AlarmActivity).apply {
+                orientation = LinearLayout.VERTICAL
+                addView(Ui.text(this@AlarmActivity, "ALARM SESİ", 12f, Ui.WHITE, bold = true).apply { letterSpacing = 0.12f })
+                addView(Ui.text(this@AlarmActivity, toneName(e.tone), 10f, Ui.GREY).apply { letterSpacing = 0.1f; maxLines = 1 },
+                    LinearLayout.LayoutParams(WRAP, WRAP).apply { setMargins(0, dp(6), 0, 0) })
+            }, LinearLayout.LayoutParams(0, WRAP, 1f))
+            addView(Ui.text(this@AlarmActivity, "SEÇ →", 11f, Ui.WHITE, bold = true).apply {
+                letterSpacing = 0.14f
+                gravity = Gravity.CENTER
+                setPadding(dp(14), 0, dp(14), 0)
+                background = Ui.rounded(this@AlarmActivity, Color.TRANSPARENT, 22f, Ui.LINE)
+                Ui.pressAnim(this)
+                setOnClickListener { pickTone(e) }
+            }, LinearLayout.LayoutParams(WRAP, dp(44)))
+        }, LinearLayout.LayoutParams(MATCH, WRAP).apply { setMargins(0, dp(12), 0, 0) })
+
+        // GLYPH: Nothing Phone (1) ışıkları; seçince kısa süre önizlenir
+        if (NothingGlyph.supported()) {
+            panel.addView(Ui.text(this, "GLYPH IŞIKLARI", 12f, Ui.WHITE, bold = true).apply { letterSpacing = 0.12f },
+                LinearLayout.LayoutParams(WRAP, WRAP).apply { setMargins(0, dp(14), 0, 0) })
+            panel.addView(LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                NothingGlyph.patterns.forEachIndexed { j, (key, name) ->
+                    val on = e.glyph == key
+                    addView(Ui.text(this@AlarmActivity, name, 10f, if (on) Ui.WHITE else Ui.GREY, bold = true).apply {
+                        gravity = Gravity.CENTER
+                        letterSpacing = 0.06f
+                        background = Ui.rounded(this@AlarmActivity, Color.TRANSPARENT, 22f, if (on) Ui.WHITE else Ui.LINE)
+                        setOnClickListener {
+                            e.glyph = key
+                            NothingGlyph.start(this@AlarmActivity, key)
+                            glyphHandler.removeCallbacks(glyphStop)
+                            glyphHandler.postDelayed(glyphStop, 3500)
+                            buildSheet()
+                        }
+                    }, LinearLayout.LayoutParams(0, dp(44), 1f).apply { setMargins(if (j == 0) 0 else dp(3), 0, if (j == 3) 0 else dp(3), 0) })
+                }
+            }, LinearLayout.LayoutParams(MATCH, WRAP).apply { setMargins(0, dp(10), 0, 0) })
+        }
+
         val note = Ui.text(this, if (e.six) fmt(e.m) + " → " + fmt((e.m + 5) % 1440) + " · UYANANA KADAR" else "KAPALI · TEK ALARM", 10f, Ui.GREY).apply { letterSpacing = 0.1f }
         panel.addView(View(this).apply { setBackgroundColor(Ui.BORDER) }, LinearLayout.LayoutParams(MATCH, dp(1)).apply { setMargins(0, dp(18), 0, 0) })
         panel.addView(LinearLayout(this).apply {
@@ -386,6 +424,45 @@ class AlarmActivity : BaseActivity() {
                 persist()
             }, LinearLayout.LayoutParams(0, dp(56), 1f))
         }, LinearLayout.LayoutParams(MATCH, WRAP).apply { setMargins(0, dp(18), 0, 0) })
+    }
+
+    private val glyphHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    private val glyphStop = Runnable { NothingGlyph.stop() }
+
+    private fun toneName(uri: String): String {
+        if (uri.isEmpty()) return "VARSAYILAN ALARM SESİ"
+        return runCatching { RingtoneManager.getRingtone(this, android.net.Uri.parse(uri))?.getTitle(this)?.uppercase() }.getOrNull() ?: "ÖZEL SES"
+    }
+
+    private fun pickTone(e: AlarmStore.A) {
+        val existing = if (e.tone.isNotEmpty()) android.net.Uri.parse(e.tone) else RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+        val i = Intent(RingtoneManager.ACTION_RINGTONE_PICKER)
+            .putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_ALARM)
+            .putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE, "ALARM SESİ")
+            .putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
+            .putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, false)
+            .putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, existing)
+        @Suppress("DEPRECATION")
+        startActivityForResult(i, 91)
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun onActivityResult(req: Int, res: Int, data: Intent?) {
+        @Suppress("DEPRECATION")
+        super.onActivityResult(req, res, data)
+        if (req == 91 && res == RESULT_OK) {
+            @Suppress("DEPRECATION")
+            val uri = data?.getParcelableExtra<android.net.Uri>(RingtoneManager.EXTRA_RINGTONE_PICKED_URI)
+            val def = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+            edit?.tone = if (uri == null || uri == def) "" else uri.toString()
+            buildSheet()
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        glyphHandler.removeCallbacks(glyphStop)
+        NothingGlyph.stop()
     }
 
     override fun onBackPressed() {

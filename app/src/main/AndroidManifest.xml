@@ -1,4 +1,4 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools">
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
@@ -9,6 +9,10 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <uses-permission android:name="com.nothing.ketchum.permission.ENABLE" />
+    <uses-sdk tools:overrideLibrary="com.nothing.thirdparty" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
@@ -20,6 +24,7 @@
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:theme="@style/Theme.EssentialLite">
+        <meta-data android:name="NothingKey" android:value="test" />
         <activity android:name=".MainActivity" android:exported="true" android:screenOrientation="portrait" android:windowSoftInputMode="adjustResize">
             <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
             <intent-filter>
@@ -133,6 +138,8 @@
         <activity android:name=".TimerActivity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".CalcAdvActivity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".BackupActivity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".AlarmRingActivity" android:exported="false" android:screenOrientation="portrait" android:showWhenLocked="true" android:turnScreenOn="true" android:excludeFromRecents="true" android:launchMode="singleTask" />
+        <service android:name=".AlarmRingService" android:exported="false" android:foregroundServiceType="mediaPlayback" />
         <activity android:name=".LinkActivity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".LinkScanActivity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".LinkSendActivity" android:exported="false" android:screenOrientation="portrait" />
