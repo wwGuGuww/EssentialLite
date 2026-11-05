@@ -857,7 +857,19 @@ class KeyComboService : AccessibilityService() {
                         dismissCapture()
                     })
                 }
-                addView(action("TAMAM", Ui.WHITE) { dismissCapture() })
+                addView(action("TAMAM", Ui.WHITE) { dismissCapture() }.apply {
+                    // Basılı tutunca ekran görüntüsündeki okunmuş metin panoya kopyalanır.
+                    setOnLongClickListener {
+                        val text = Info.readOcr(file).trim()
+                        if (text.isEmpty()) Store.toast(this@KeyComboService, "METİN YOK")
+                        else {
+                            (getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager)
+                                .setPrimaryClip(android.content.ClipData.newPlainText("EL", text))
+                            Store.toast(this@KeyComboService, "METİN KOPYALANDI")
+                        }
+                        true
+                    }
+                })
             })
         }
         val holder = FrameLayout(this).apply {
