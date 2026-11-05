@@ -213,6 +213,7 @@ class BootReceiver : BroadcastReceiver() {
             try {
                 Reminders.rescheduleAll(ctx.applicationContext)
                 if (Prefs.get(ctx, "batt_on", false)) BatteryWatch.schedule(ctx.applicationContext)
+                AlarmStore.schedule(ctx.applicationContext)
             } finally { pending.finish() }
         }.start()
     }

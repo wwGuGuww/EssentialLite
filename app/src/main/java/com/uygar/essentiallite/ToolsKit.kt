@@ -5,24 +5,34 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
-import android.content.res.ColorStateList
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
+import android.graphics.drawable.GradientDrawable
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.os.PersistableBundle
 import android.os.SystemClock
+import android.text.Editable
+import android.text.Spannable
+import android.text.SpannableStringBuilder
+import android.text.TextWatcher
+import android.text.style.ForegroundColorSpan
 import android.view.Gravity
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
+import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.HorizontalScrollView
 import android.widget.LinearLayout
 import android.widget.ScrollView
-import android.widget.SeekBar
 import android.widget.TextView
 import java.math.BigDecimal
 import java.security.SecureRandom
@@ -30,17 +40,22 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 import java.util.TimeZone
+import kotlin.math.abs
+import kotlin.math.hypot
+import kotlin.math.roundToInt
 
-/** Araçlar bölümü (tasarım 14–20) için ortak yardımcılar: ekran iskeleti, ikonlar, ana ekran şeridi. */
+private const val MATCH = ViewGroup.LayoutParams.MATCH_PARENT
+private const val WRAP = ViewGroup.LayoutParams.WRAP_CONTENT
+
+/** Araçlar bölümü (tasarım 14–20) için ortak yardımcılar: ekran iskeleti, sekmeler, ikonlar, ana ekran şeridi. */
 object ToolUi {
-    private const val MATCH = ViewGroup.LayoutParams.MATCH_PARENT
-    private const val WRAP = ViewGroup.LayoutParams.WRAP_CONTENT
-
+    val ICON_BACK = listOf("0001000", "0010000", "0100000", "1111111", "0100000", "0010000", "0001000")
     val ICON_CLOCK = listOf("0011100", "0100010", "1001001", "1001101", "1000001", "0100010", "0011100")
     val ICON_STOPWATCH = listOf("0011100", "0001000", "0111110", "1001001", "1001101", "1000001", "0111110")
     val ICON_CALC = listOf("0111110", "0100010", "0111110", "0000000", "1010101", "0000000", "1010101")
     val ICON_LEVEL = listOf("0011100", "0100010", "1001001", "1011101", "1001001", "0100010", "0011100")
-    val ICON_PAUSE =listOf("0000000", "0110110", "0110110", "0110110", "0110110", "0110110", "0000000")
+    val ICON_PAUSE = listOf("0000000", "0110110", "0110110", "0110110", "0110110", "0110110", "0000000")
+    val ICON_BELL7 = listOf("0001000", "0011100", "0111110", "0111110", "0111110", "1111111", "0001000")
 
     fun dp(ctx: Context, v: Int) = (v * ctx.resources.displayMetrics.density).toInt()
 
@@ -50,29 +65,69 @@ object ToolUi {
 
     fun dateLabel(): String = SimpleDateFormat("dd.MM EEE", TR).format(Calendar.getInstance().time).uppercase(TR)
 
-    /** Ortak ekran iskeleti: geri oku, başlık, sağda bilgi yazısı ve gövde. Sağdaki yazıyı döndürür. */
-    fun screen(a: Activity, title: String, right: String, body: View): TextView {
-        val rightView = Ui.text(a, right, 10f, Ui.GREY).apply { letterSpacing = 0.14f }
+    /** "● ETİKET": kırmızı nokta + metin. Nokta [on] değilse saydam (aynı genişlik). */
+    fun dotText(label: String, on: Boolean = true): CharSequence {
+        val s = SpannableStringBuilder("● $label")
+        s.setSpan(ForegroundColorSpan(if (on) Ui.RED else Color.TRANSPARENT), 0, 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+        return s
+    }
+
+    /**
+     * Ortak ekran iskeleti (tasarım): 20 dp yan, 44 dp üst, 28 dp alt boşluk; üstte 44 dp başlık satırı
+     * (nokta matrisi geri oku + "● BAŞLIK"), sağda bilgi yazısı. Sağdaki yazıyı döndürür.
+     */
+    fun screen(a: Activity, title: String, right: String, body: View, topGap: Int = 18): TextView {
+        val rightView = Ui.text(a, right, 11f, Ui.GREY).apply { letterSpacing = 0.1f }
+        val back = LinearLayout(a).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            contentDescription = "Geri"
+            setPadding(dp(a, 10), 0, dp(a, 10), 0)
+            addView(DotIcon(a, ICON_BACK, Ui.WHITE, 27))
+            addView(Ui.kindLabel(a, title).apply { textSize = 11f; letterSpacing = 0.16f }, LinearLayout.LayoutParams(WRAP, WRAP).apply { setMargins(dp(a, 12), 0, 0, 0) })
+            setOnClickListener { a.finish() }
+        }
         val header = LinearLayout(a).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            addView(Ui.text(a, "‹", 18f).apply {
-                contentDescription = "Geri"
-                setPadding(0, 0, dp(a, 14), 0)
-                setOnClickListener { a.finish() }
-            })
-            addView(Ui.kindLabel(a, title), LinearLayout.LayoutParams(0, WRAP, 1f))
+            addView(back, LinearLayout.LayoutParams(WRAP, dp(a, 44)).apply { setMargins(dp(a, -10), 0, 0, 0) })
+            addView(View(a), LinearLayout.LayoutParams(0, 1, 1f))
             addView(rightView)
         }
         val root = LinearLayout(a).apply {
             orientation = LinearLayout.VERTICAL
             setBackgroundColor(Ui.BG)
-            setPadding(dp(a, 20), dp(a, 44), dp(a, 20), dp(a, 24))
-            addView(header, LinearLayout.LayoutParams(MATCH, WRAP))
-            addView(body, LinearLayout.LayoutParams(MATCH, 0, 1f).apply { setMargins(0, dp(a, 14), 0, 0) })
+            setPadding(dp(a, 20), dp(a, 44), dp(a, 20), dp(a, 28))
+            addView(header, LinearLayout.LayoutParams(MATCH, dp(a, 44)))
+            addView(body, LinearLayout.LayoutParams(MATCH, 0, 1f).apply { setMargins(0, dp(a, topGap), 0, 0) })
         }
         a.setContentView(root)
         return rightView
+    }
+
+    /** SAAT / ALARM / KRONO / SAYAÇ sekmeleri (tasarım: 44 dp, 22 dp köşe, seçili arka plan #1E1E1E). */
+    fun tabs(a: Activity, current: Int): View {
+        val classes = listOf(ClockActivity::class.java, AlarmActivity::class.java, StopwatchActivity::class.java, TimerActivity::class.java)
+        val names = listOf("SAAT", "ALARM", "KRONO", "SAYAÇ")
+        return LinearLayout(a).apply {
+            orientation = LinearLayout.HORIZONTAL
+            background = Ui.rounded(a, Color.TRANSPARENT, 22f, Ui.LINE)
+            clipToOutline = true
+            names.forEachIndexed { i, n ->
+                val on = i == current
+                addView(Ui.text(a, "", 10.5f, if (on) Ui.WHITE else Ui.GREY, bold = true).apply {
+                    text = if (on) dotText(n) else n
+                    gravity = Gravity.CENTER
+                    letterSpacing = 0.08f
+                    setBackgroundColor(if (on) Ui.OFF else Color.TRANSPARENT)
+                    if (!on) setOnClickListener {
+                        a.startActivity(Intent(a, classes[i]))
+                        a.overridePendingTransition(0, 0)
+                        a.finish()
+                    }
+                }, LinearLayout.LayoutParams(0, MATCH, 1f))
+            }
+        }
     }
 
     /** İnce çerçeveli, yuvarlak düğme. [selected] ise beyaz çerçeve. */
@@ -85,69 +140,193 @@ object ToolUi {
             setOnClickListener { onClick() }
         }
 
-    /** Ana ekrandaki "ARAÇLAR" şeridi: başlık, "TÜMÜ" bağlantısı ve dört küçük kısayol. */
+    /** Kesik çizgili kenarlık (ana ekrandaki "DAHA FAZLA" kartı). */
+    fun dashed(ctx: Context, fill: Int, radiusDp: Float, stroke: Int): GradientDrawable {
+        val d = ctx.resources.displayMetrics.density
+        return GradientDrawable().apply {
+            cornerRadius = radiusDp * d
+            setColor(fill)
+            setStroke(d.toInt().coerceAtLeast(1), stroke, 4 * d, 3 * d)
+        }
+    }
+
+    // -----------------------------------------------------------------------------------------
+    // Ana ekran şeridi (tasarım Main)
+    // -----------------------------------------------------------------------------------------
+
     fun homeStrip(a: Activity): View {
+        fun dpx(v: Int) = dp(a, v)
         fun open(cls: Class<*>) = a.startActivity(Intent(a, cls))
         val head = LinearLayout(a).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             addView(Ui.text(a, "", 10f, Ui.GREY).apply {
-                text = Ui.withDot("ARAÇLAR · 6", Ui.RED)
+                text = dotText("ARAÇLAR · $TOOL_COUNT")
                 letterSpacing = 0.18f
             }, LinearLayout.LayoutParams(0, WRAP, 1f))
-            addView(Ui.text(a, "TÜMÜ →", 10f, Ui.WHITE, bold = true).apply {
-                letterSpacing = 0.14f
-                setPadding(dp(a, 8), dp(a, 8), 0, dp(a, 8))
+            addView(Ui.text(a, "", 10f, Ui.WHITE).apply {
+                val s = SpannableStringBuilder("TÜMÜ →")
+                s.setSpan(ForegroundColorSpan(Ui.RED), 5, 6, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                text = s
+                letterSpacing = 0.18f
+                gravity = Gravity.CENTER
+                setPadding(dpx(8), 0, dpx(8), 0)
                 setOnClickListener { open(ToolsActivity::class.java) }
+            }, LinearLayout.LayoutParams(WRAP, dpx(44)).apply { setMargins(dpx(-8), dpx(-14), dpx(-8), dpx(-14)) })
+        }
+
+        val track = LinearLayout(a).apply { orientation = LinearLayout.HORIZONTAL }
+        fun tile(label: String, cls: Class<*>?, dashed: Boolean = false, content: LinearLayout.() -> Unit) {
+            track.addView(LinearLayout(a).apply {
+                orientation = LinearLayout.VERTICAL
+                setPadding(dpx(14), dpx(12), dpx(14), dpx(12))
+                background = if (dashed) dashed(a, Ui.SURFACE, 24f, Ui.LINE) else Ui.rounded(a, Ui.SURFACE, 24f, Ui.BORDER)
+                addView(Ui.text(a, label, 9.5f, Ui.GREY).apply { letterSpacing = 0.16f })
+                addView(View(a), LinearLayout.LayoutParams(1, 0, 1f))
+                content()
+                Ui.pressAnim(this)
+                if (cls != null) setOnClickListener { open(cls) }
+            }, LinearLayout.LayoutParams(dpx(112), dpx(108)).apply { setMargins(0, 0, dpx(8), 0) })
+        }
+
+        val now = Calendar.getInstance()
+        val hm = p2(now.get(Calendar.HOUR_OF_DAY).toLong()) + ":" + p2(now.get(Calendar.MINUTE).toLong())
+        tile("SAAT", ClockActivity::class.java) {
+            addView(LinearLayout(a).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.BOTTOM
+                addView(Ui.display(a, hm, 20f).apply { maxLines = 1 })
+                addView(Ui.display(a, p2(now.get(Calendar.SECOND).toLong()), 8f, Ui.RED).apply { maxLines = 1 }, LinearLayout.LayoutParams(WRAP, WRAP).apply { setMargins(dpx(3), 0, 0, 0) })
             })
         }
-        val row = LinearLayout(a).apply {
-            orientation = LinearLayout.HORIZONTAL
-            val items = listOf(
-                Triple("SAAT", ICON_CLOCK, ClockActivity::class.java),
-                Triple("KRONO", ICON_STOPWATCH, StopwatchActivity::class.java),
-                Triple("HESAP", ICON_CALC, CalcActivity::class.java),
-                Triple("ŞİFRE", Ui.ICON_LOCK, PasswordActivity::class.java)
-            )
-            items.forEachIndexed { i, (label, icon, cls) ->
-                addView(mini(a, label, icon) { open(cls) }, LinearLayout.LayoutParams(0, dp(a, 72), 1f).apply {
-                    setMargins(if (i == 0) 0 else dp(a, 4), 0, if (i == items.size - 1) 0 else dp(a, 4), 0)
-                })
-            }
+        val next = AlarmStore.next(a)
+        tile("ALARM", AlarmActivity::class.java) {
+            addView(Ui.display(a, next?.first ?: "--:--", 24f))
+            addView(Ui.text(a, next?.second ?: "ALARM YOK", 9f, Ui.GREY).apply { letterSpacing = 0.1f }, LinearLayout.LayoutParams(WRAP, WRAP).apply { setMargins(0, dpx(6), 0, 0) })
         }
+        val snap = BatteryWatch.snapshot(a)
+        tile("PİL", BatteryActivity::class.java) {
+            addView(LinearLayout(a).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.BOTTOM
+                addView(Ui.display(a, snap.level.toString(), 24f))
+                addView(Ui.display(a, "%", 10f, Ui.GREY))
+            })
+            addView(LinearLayout(a).apply {
+                orientation = LinearLayout.HORIZONTAL
+                for (i in 0 until 10) {
+                    addView(View(a).apply {
+                        background = Ui.rounded(a, if (i < Math.round(snap.level / 10f)) Ui.WHITE else Ui.OFF, 1f)
+                    }, LinearLayout.LayoutParams(0, dpx(5), 1f).apply { setMargins(0, 0, if (i < 9) dpx(2) else 0, 0) })
+                }
+            }, LinearLayout.LayoutParams(MATCH, WRAP).apply { setMargins(0, dpx(7), 0, 0) })
+        }
+        tile("HESAP", CalcActivity::class.java) {
+            addView(KeyDots(a, 10), LinearLayout.LayoutParams(MATCH, dpx(10 * 3 + 5 * 2)))
+        }
+        tile("SAYAÇ", TimerActivity::class.java) {
+            addView(Ui.display(a, "05:00", 24f))
+            addView(View(a).apply { background = Ui.rounded(a, Ui.OFF, 2f) }, LinearLayout.LayoutParams(MATCH, dpx(3)).apply { setMargins(0, dpx(7), 0, 0) })
+        }
+        tile("METRONOM", MetronomeActivity::class.java) {
+            addView(LinearLayout(a).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.BOTTOM
+                addView(Ui.display(a, "120", 24f), LinearLayout.LayoutParams(0, WRAP, 1f))
+                addView(View(a).apply { background = Ui.rounded(a, Ui.RED, 5f) }, LinearLayout.LayoutParams(dpx(10), dpx(10)).apply { setMargins(0, 0, dpx(6), dpx(4)) })
+            })
+        }
+        tile("ŞİFRE", PasswordActivity::class.java) {
+            addView(Ui.text(a, PasswordActivity.sample(), 13f, Ui.WHITE, bold = true).apply { letterSpacing = 0.1f; setLineSpacing(0f, 1.15f) })
+        }
+        tile("DAHA FAZLA", ToolsActivity::class.java, dashed = true) {
+            addView(Ui.display(a, "+2", 24f))
+            addView(Ui.text(a, "KRONO · TERAZİ", 9f, Ui.GREY).apply { letterSpacing = 0.1f }, LinearLayout.LayoutParams(WRAP, WRAP).apply { setMargins(0, dpx(6), 0, 0) })
+        }
+
         return LinearLayout(a).apply {
             orientation = LinearLayout.VERTICAL
             addView(head, LinearLayout.LayoutParams(MATCH, WRAP))
-            addView(row, LinearLayout.LayoutParams(MATCH, WRAP).apply { setMargins(0, dp(a, 4), 0, 0) })
+            addView(HorizontalScrollView(a).apply {
+                isHorizontalScrollBarEnabled = false
+                clipToPadding = false
+                addView(track)
+            }, LinearLayout.LayoutParams(MATCH, WRAP).apply { setMargins(0, dpx(10), 0, 0) })
         }
     }
 
-    private fun mini(ctx: Context, label: String, icon: List<String>, onClick: () -> Unit) =
-        LinearLayout(ctx).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER
-            background = Ui.rounded(ctx, Ui.SURFACE, 22f, Ui.BORDER)
-            addView(DotIcon(ctx, icon, Ui.WHITE, 22))
-            addView(Ui.text(ctx, label, 9f, Ui.GREY, bold = true).apply {
-                letterSpacing = 0.12f
-                gravity = Gravity.CENTER
-                setPadding(0, dp(ctx, 6), 0, 0)
-            })
-            Ui.pressAnim(this)
-            setOnClickListener { onClick() }
-        }
+    const val TOOL_COUNT = 9
 }
 
-/** Araçlar sayfası (tasarım 14). */
-class ToolsActivity : BaseActivity() {
+/** 4×3 mini tuş noktaları: sırayla biri yanar (tasarım: Hesap kartı). */
+private class KeyDots(ctx: Context, private val dotDp: Int) : View(ctx) {
+    private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val d = ctx.resources.displayMetrics.density
+    private var hot = 0
     private val h = Handler(Looper.getMainLooper())
-    private lateinit var hm: TextView
-    private lateinit var ss: TextView
+    private val tick = object : Runnable {
+        override fun run() { hot = (hot + 1) % 12; invalidate(); h.postDelayed(this, 840) }
+    }
+
+    override fun onAttachedToWindow() { super.onAttachedToWindow(); h.postDelayed(tick, 840) }
+    override fun onDetachedFromWindow() { super.onDetachedFromWindow(); h.removeCallbacks(tick) }
+
+    override fun onDraw(c: Canvas) {
+        val cw = width / 4f
+        for (i in 0 until 12) {
+            val x = i % 4
+            val y = i / 4
+            val cx = (x + 0.5f) * cw
+            val cy = (y * (dotDp + 5) + dotDp / 2f) * d
+            val on = i == hot
+            paint.style = Paint.Style.FILL
+            paint.color = if (on) Ui.WHITE else Color.TRANSPARENT
+            c.drawCircle(cx, cy, dotDp / 2f * d, paint)
+            paint.style = Paint.Style.STROKE
+            paint.strokeWidth = d
+            paint.color = if (i == 11) Ui.RED else if (on) Ui.WHITE else Ui.LINE
+            c.drawCircle(cx, cy, dotDp / 2f * d - d / 2, paint)
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------------------------
+// Araçlar sayfası (tasarım 14)
+// ---------------------------------------------------------------------------------------------
+
+class ToolsActivity : BaseActivity(), SensorEventListener {
+    private val h = Handler(Looper.getMainLooper())
+    private lateinit var grid: LinearLayout
+    private lateinit var countView: TextView
+    private var cat = 0
+    private var query = ""
+    private lateinit var catRow: LinearLayout
+    private var hm: TextView? = null
+    private var ss: TextView? = null
+    private var secDots: DotsView? = null
+    private var bubble: MiniBubble? = null
+    private var tilt: TextView? = null
+    private lateinit var sm: SensorManager
+    private val TR = Locale("tr", "TR")
+
+    private class Tool(val id: String, val cat: Int, val keys: String, val span2: Boolean)
+
+    private val tools = listOf(
+        Tool("clock", 1, "saat zaman dünya", true), Tool("alarm", 1, "alarm uyandır zaman", false),
+        Tool("battery", 4, "pil şarj sağlık sistem", false), Tool("calc", 2, "hesap makinesi kdv kredi birim çevirici ölçü", false),
+        Tool("timer", 1, "sayaç zamanlayıcı odak pomodoro zaman", false), Tool("stopwatch", 1, "kronometre tur zaman", false),
+        Tool("level", 2, "su terazisi düzlem ölçü", false), Tool("metro", 3, "metronom bpm tempo müzik", true),
+        Tool("pass", 5, "şifre parola üretici güvenlik", true)
+    )
+    private val cats = listOf("HEPSİ", "ZAMAN", "ÖLÇÜ", "MÜZİK", "SİSTEM", "ÜRET")
+
     private val tick = object : Runnable {
         override fun run() {
             val c = Calendar.getInstance()
-            hm.text = ToolUi.p2(c.get(Calendar.HOUR_OF_DAY).toLong()) + ":" + ToolUi.p2(c.get(Calendar.MINUTE).toLong())
-            ss.text = ToolUi.p2(c.get(Calendar.SECOND).toLong())
+            val sec = c.get(Calendar.SECOND)
+            hm?.text = ToolUi.p2(c.get(Calendar.HOUR_OF_DAY).toLong()) + ":" + ToolUi.p2(c.get(Calendar.MINUTE).toLong())
+            ss?.text = ToolUi.p2(sec.toLong())
+            secDots?.let { it.colors = IntArray(60) { i -> if (i < sec) Ui.WHITE else if (i == sec) Ui.RED else Ui.OFF }; it.invalidate() }
             h.postDelayed(this, 1000L - System.currentTimeMillis() % 1000L)
         }
     }
@@ -155,149 +334,404 @@ class ToolsActivity : BaseActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         fun dp(v: Int) = ToolUi.dp(this, v)
-        hm = Ui.display(this, "", 56f)
-        ss = Ui.display(this, "", 22f, Ui.RED)
+        sm = getSystemService(Context.SENSOR_SERVICE) as SensorManager
 
-        fun tile(label: String, bottom: View, cls: Class<*>) = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            background = Ui.rounded(this@ToolsActivity, Ui.SURFACE, 28f, Ui.BORDER)
-            setPadding(dp(16), dp(16), dp(16), dp(16))
-            addView(Ui.text(this@ToolsActivity, label, 10f, Ui.GREY).apply { letterSpacing = 0.18f })
-            addView(View(this@ToolsActivity), LinearLayout.LayoutParams(1, 0, 1f))
-            addView(bottom)
-            Ui.pressAnim(this)
-            setOnClickListener { startActivity(Intent(this@ToolsActivity, cls)) }
-        }
-
-        val clockTile = tile("SAAT", LinearLayout(this).apply {
+        countView = Ui.display(this, "", 64f)
+        val titleRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.BOTTOM
-            addView(hm)
-            addView(ss, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { setMargins(dp(8), 0, 0, 0) })
-        }, ClockActivity::class.java)
-        val swTile = tile("KRONOMETRE", DotIcon(this, ToolUi.ICON_STOPWATCH, Ui.WHITE, 32), StopwatchActivity::class.java)
-        val calcTile = tile("HESAP", DotIcon(this, ToolUi.ICON_CALC, Ui.WHITE, 32), CalcActivity::class.java)
-        val passTile = tile("ŞİFRE ÜRETİCİ", DotIcon(this, Ui.ICON_LOCK, Ui.WHITE, 32), PasswordActivity::class.java)
-        val levelTile = tile("SU TERAZİSİ", DotIcon(this, ToolUi.ICON_LEVEL, Ui.WHITE, 32), LevelActivity::class.java)
-        val snap = BatteryWatch.snapshot(this)
-        val battBottom = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            addView(LinearLayout(this@ToolsActivity).apply {
-                orientation = LinearLayout.HORIZONTAL
-                for (i in 0 until 10) {
-                    addView(View(this@ToolsActivity).apply {
-                        background = Ui.rounded(this@ToolsActivity, if (i < Math.round(snap.level / 10f)) Ui.WHITE else Ui.OFF, 2f)
-                    }, LinearLayout.LayoutParams(0, dp(22), 1f).apply { setMargins(0, 0, if (i < 9) dp(3) else 0, 0) })
-                }
-            }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
-            addView(LinearLayout(this@ToolsActivity).apply {
-                orientation = LinearLayout.HORIZONTAL
-                gravity = Gravity.BOTTOM
-                addView(Ui.display(this@ToolsActivity, snap.level.toString(), 32f))
-                addView(Ui.display(this@ToolsActivity, "%", 14f, Ui.GREY))
-            }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { setMargins(0, dp(8), 0, 0) })
+            addView(countView, LinearLayout.LayoutParams(0, WRAP, 1f))
+            addView(Ui.text(this@ToolsActivity, "", 11f, Ui.GREY).apply {
+                val s = SpannableStringBuilder("ARAÇ\n/ ${ToolUi.p2(ToolUi.TOOL_COUNT.toLong())}")
+                s.setSpan(ForegroundColorSpan(Ui.WHITE), 5, s.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                text = s
+                letterSpacing = 0.16f
+                gravity = Gravity.END
+                setLineSpacing(0f, 1.3f)
+            })
         }
-        val battTile = tile("PİL", battBottom, BatteryActivity::class.java)
+
+        val search = EditText(this).apply {
+            hint = "ARA…"
+            setHintTextColor(Ui.GREY)
+            setTextColor(Ui.WHITE)
+            textSize = 12f
+            letterSpacing = 0.14f
+            typeface = android.graphics.Typeface.MONOSPACE
+            setSingleLine(true)
+            background = null
+            setPadding(0, 0, 0, 0)
+            addTextChangedListener(object : TextWatcher {
+                override fun beforeTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
+                override fun onTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {
+                    query = s.toString().lowercase(TR).trim(); renderGrid()
+                }
+                override fun afterTextChanged(s: Editable?) {}
+            })
+        }
+        val searchBox = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(18), 0, dp(18), 0)
+            background = Ui.rounded(this@ToolsActivity, Color.TRANSPARENT, 22f, Ui.LINE)
+            addView(DotIcon(this@ToolsActivity, Ui.ICON_SEARCH, Ui.WHITE, 21))
+            addView(search, LinearLayout.LayoutParams(0, MATCH, 1f).apply { setMargins(dp(12), 0, 0, 0) })
+        }
+
+        catRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        grid = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
 
         val body = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            addView(LinearLayout(this@ToolsActivity).apply {
-                orientation = LinearLayout.HORIZONTAL
-                gravity = Gravity.BOTTOM
-                addView(Ui.display(this@ToolsActivity, "06", 56f), LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
-                addView(Ui.text(this@ToolsActivity, "ARAÇ", 10f, Ui.GREY).apply { letterSpacing = 0.16f })
-            }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { setMargins(0, 0, 0, dp(14)) })
-            addView(clockTile, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(148)))
-            addView(LinearLayout(this@ToolsActivity).apply {
-                orientation = LinearLayout.HORIZONTAL
-                addView(swTile, LinearLayout.LayoutParams(0, dp(148), 1f).apply { setMargins(0, 0, dp(5), 0) })
-                addView(calcTile, LinearLayout.LayoutParams(0, dp(148), 1f).apply { setMargins(dp(5), 0, 0, 0) })
-            }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { setMargins(0, dp(10), 0, 0) })
-            addView(LinearLayout(this@ToolsActivity).apply {
-                orientation = LinearLayout.HORIZONTAL
-                addView(battTile, LinearLayout.LayoutParams(0, dp(148), 1f).apply { setMargins(0, 0, dp(5), 0) })
-                addView(levelTile, LinearLayout.LayoutParams(0, dp(148), 1f).apply { setMargins(dp(5), 0, 0, 0) })
-            }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { setMargins(0, dp(10), 0, 0) })
-            addView(passTile, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(148)).apply { setMargins(0, dp(10), 0, 0) })
+            addView(titleRow, LinearLayout.LayoutParams(MATCH, WRAP))
+            addView(searchBox, LinearLayout.LayoutParams(MATCH, dp(44)).apply { setMargins(0, dp(14), 0, 0) })
+            addView(HorizontalScrollView(this@ToolsActivity).apply {
+                isHorizontalScrollBarEnabled = false
+                addView(catRow)
+            }, LinearLayout.LayoutParams(MATCH, WRAP).apply { setMargins(0, dp(14), 0, 0) })
+            addView(ScrollView(this@ToolsActivity).apply {
+                isVerticalScrollBarEnabled = false
+                addView(grid)
+            }, LinearLayout.LayoutParams(MATCH, 0, 1f).apply { setMargins(0, dp(14), 0, 0) })
         }
-        ToolUi.screen(this, "ARAÇLAR", ToolUi.dateLabel(), ScrollView(this).apply {
-            isVerticalScrollBarEnabled = false
-            addView(body)
-        })
+        ToolUi.screen(this, "ARAÇLAR", ToolUi.dateLabel(), body)
+        renderCats()
+        renderGrid()
     }
+
+    private fun renderCats() {
+        fun dp(v: Int) = ToolUi.dp(this, v)
+        catRow.removeAllViews()
+        cats.forEachIndexed { i, l ->
+            val on = i == cat
+            catRow.addView(Ui.text(this, "", 10.5f, if (on) Ui.WHITE else Ui.GREY, bold = true).apply {
+                text = ToolUi.dotText(l, on)
+                gravity = Gravity.CENTER
+                letterSpacing = 0.12f
+                setPadding(dp(16), 0, dp(16), 0)
+                background = Ui.rounded(this@ToolsActivity, Color.TRANSPARENT, 22f, if (on) Ui.WHITE else Ui.LINE)
+                Ui.pressAnim(this)
+                setOnClickListener { cat = i; renderCats(); renderGrid() }
+            }, LinearLayout.LayoutParams(WRAP, dp(44)).apply { setMargins(0, 0, dp(6), 0) })
+        }
+    }
+
+    private fun renderGrid() {
+        fun dp(v: Int) = ToolUi.dp(this, v)
+        h.removeCallbacks(tick)
+        hm = null; ss = null; secDots = null; bubble = null; tilt = null
+        sm.unregisterListener(this)
+        grid.removeAllViews()
+        val shown = tools.filter { (cat == 0 || it.cat == cat) && (query.isEmpty() || it.keys.contains(query)) }
+        countView.text = ToolUi.p2(shown.size.toLong())
+        if (shown.isEmpty()) {
+            grid.addView(Ui.text(this, "SONUÇ YOK", 11f, Ui.GREY).apply {
+                letterSpacing = 0.16f; gravity = Gravity.CENTER; setPadding(0, dp(40), 0, dp(40))
+            }, LinearLayout.LayoutParams(MATCH, WRAP))
+            return
+        }
+        var open: LinearLayout? = null
+        fun newRow() = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }.also {
+            grid.addView(it, LinearLayout.LayoutParams(MATCH, dp(148)).apply { setMargins(0, 0, 0, dp(10)) })
+        }
+        for (t in shown) {
+            val v = tileFor(t.id)
+            if (t.span2) {
+                newRow().addView(v, LinearLayout.LayoutParams(MATCH, MATCH))
+            } else {
+                val row = open
+                if (row == null) {
+                    val r = newRow()
+                    r.addView(v, LinearLayout.LayoutParams(0, MATCH, 1f).apply { setMargins(0, 0, dp(5), 0) })
+                    r.addView(View(this).apply { tag = "ph" }, LinearLayout.LayoutParams(0, 1, 1f).apply { setMargins(dp(5), 0, 0, 0) })
+                    open = r
+                } else {
+                    row.removeViewAt(row.childCount - 1)
+                    row.addView(v, LinearLayout.LayoutParams(0, MATCH, 1f).apply { setMargins(dp(5), 0, 0, 0) })
+                    open = null
+                }
+            }
+        }
+        h.post(tick)
+        if (bubble != null) sm.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)?.let { sm.registerListener(this, it, SensorManager.SENSOR_DELAY_UI) }
+    }
+
+    private fun tileFor(id: String): View {
+        fun dp(v: Int) = ToolUi.dp(this, v)
+        fun box(label: String, cls: Class<*>, bottom: LinearLayout.() -> Unit, top: (LinearLayout.() -> Unit)? = null): View {
+            val inner = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                setPadding(dp(16), dp(16), dp(16), dp(16))
+                if (top != null) {
+                    addView(LinearLayout(this@ToolsActivity).apply { orientation = LinearLayout.VERTICAL; top() })
+                } else addView(Ui.text(this@ToolsActivity, label, 10f, Ui.GREY).apply { letterSpacing = 0.18f })
+                addView(View(this@ToolsActivity), LinearLayout.LayoutParams(1, 0, 1f))
+                bottom()
+            }
+            return FrameLayout(this).apply {
+                background = Ui.rounded(this@ToolsActivity, Ui.SURFACE, 28f, Ui.BORDER)
+                addView(inner, FrameLayout.LayoutParams(MATCH, MATCH))
+                addView(Ui.text(this@ToolsActivity, "↗", 12f, Ui.PROG), FrameLayout.LayoutParams(WRAP, WRAP, Gravity.TOP or Gravity.END).apply { setMargins(0, dp(12), dp(14), 0) })
+                Ui.pressAnim(this)
+                setOnClickListener { startActivity(Intent(this@ToolsActivity, cls)) }
+            }
+        }
+        return when (id) {
+            "clock" -> {
+                val city = TimeZone.getDefault().id.substringAfter('/').replace('_', ' ').uppercase(TR)
+                val hmv = Ui.display(this, "", 56f)
+                val ssv = Ui.display(this, "", 20f, Ui.RED)
+                val dots = DotsView(this, 60, 1, 3f, 3f)
+                hm = hmv; ss = ssv; secDots = dots
+                box("SAAT · $city", ClockActivity::class.java, {
+                    addView(LinearLayout(this@ToolsActivity).apply {
+                        orientation = LinearLayout.HORIZONTAL
+                        gravity = Gravity.BOTTOM
+                        addView(hmv)
+                        addView(ssv, LinearLayout.LayoutParams(WRAP, WRAP).apply { setMargins(dp(8), 0, 0, 0) })
+                    })
+                    addView(dots, LinearLayout.LayoutParams(MATCH, dp(3)).apply { setMargins(0, dp(8), 0, 0) })
+                })
+            }
+            "alarm" -> {
+                val next = AlarmStore.next(this)
+                box("", AlarmActivity::class.java, {
+                    addView(Ui.display(this@ToolsActivity, next?.first ?: "--:--", 36f))
+                    addView(Ui.text(this@ToolsActivity, "ALARM · " + (next?.second ?: "YOK"), 10f, Ui.GREY).apply { letterSpacing = 0.12f }, LinearLayout.LayoutParams(WRAP, WRAP).apply { setMargins(0, dp(8), 0, 0) })
+                }, top = { addView(DotIcon(this@ToolsActivity, ToolUi.ICON_BELL7, Ui.WHITE, 42)) })
+            }
+            "battery" -> {
+                val s = BatteryWatch.snapshot(this)
+                val health = if (s.fullMah != null && s.designMah != null) (s.fullMah / s.designMah * 100).coerceAtMost(100.0).roundToInt() else null
+                box("PİL", BatteryActivity::class.java, {
+                    addView(LinearLayout(this@ToolsActivity).apply {
+                        orientation = LinearLayout.HORIZONTAL
+                        for (i in 0 until 10) addView(View(this@ToolsActivity).apply {
+                            background = Ui.rounded(this@ToolsActivity, if (i < Math.round(s.level / 10f)) Ui.WHITE else Ui.OFF, 2f)
+                        }, LinearLayout.LayoutParams(0, dp(22), 1f).apply { setMargins(0, 0, if (i < 9) dp(3) else 0, 0) })
+                    })
+                    addView(LinearLayout(this@ToolsActivity).apply {
+                        orientation = LinearLayout.HORIZONTAL
+                        gravity = Gravity.BOTTOM
+                        addView(LinearLayout(this@ToolsActivity).apply {
+                            orientation = LinearLayout.HORIZONTAL
+                            gravity = Gravity.BOTTOM
+                            addView(Ui.display(this@ToolsActivity, s.level.toString(), 30f))
+                            addView(Ui.display(this@ToolsActivity, "%", 12f, Ui.GREY))
+                        }, LinearLayout.LayoutParams(0, WRAP, 1f))
+                        if (health != null) addView(Ui.text(this@ToolsActivity, "", 10f, Ui.GREY).apply {
+                            val sp = SpannableStringBuilder("SAĞLIK $health")
+                            sp.setSpan(ForegroundColorSpan(Ui.WHITE), 7, sp.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                            text = sp; letterSpacing = 0.1f
+                        })
+                    }, LinearLayout.LayoutParams(MATCH, WRAP).apply { setMargins(0, dp(8), 0, 0) })
+                })
+            }
+            "calc" -> box("HESAP", CalcActivity::class.java, {
+                addView(KeyDots(this@ToolsActivity, 14), LinearLayout.LayoutParams(MATCH, dp(14 * 3 + 6 * 2)))
+                addView(Ui.display(this@ToolsActivity, "0", 18f).apply { gravity = Gravity.END }, LinearLayout.LayoutParams(MATCH, WRAP))
+            })
+            "timer" -> box("SAYAÇ · ODAK", TimerActivity::class.java, {
+                addView(Ui.display(this@ToolsActivity, "05:00", 34f))
+                addView(View(this@ToolsActivity).apply { background = Ui.rounded(this@ToolsActivity, Ui.OFF, 2f) }, LinearLayout.LayoutParams(MATCH, dp(3)).apply { setMargins(0, dp(10), 0, 0) })
+            })
+            "stopwatch" -> box("KRONOMETRE", StopwatchActivity::class.java, {
+                addView(Ui.display(this@ToolsActivity, "00:00.0", 30f))
+                addView(Ui.text(this@ToolsActivity, "HAZIR", 10f, Ui.GREY).apply { letterSpacing = 0.12f }, LinearLayout.LayoutParams(WRAP, WRAP).apply { setMargins(0, dp(8), 0, 0) })
+            })
+            "level" -> {
+                val b = MiniBubble(this)
+                val t = Ui.text(this, "—", 10f, Ui.GREY).apply { letterSpacing = 0.12f }
+                bubble = b; tilt = t
+                box("SU TERAZİSİ", LevelActivity::class.java, {
+                    addView(b, LinearLayout.LayoutParams(dp(9 * 12), dp(9 * 12)).apply { gravity = Gravity.CENTER_HORIZONTAL })
+                    addView(t, LinearLayout.LayoutParams(WRAP, WRAP))
+                })
+            }
+            "metro" -> box("METRONOM · MÜZİK", MetronomeActivity::class.java, {
+                addView(LinearLayout(this@ToolsActivity).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    gravity = Gravity.BOTTOM
+                    addView(LinearLayout(this@ToolsActivity).apply {
+                        orientation = LinearLayout.HORIZONTAL
+                        gravity = Gravity.BOTTOM
+                        addView(Ui.display(this@ToolsActivity, "120", 48f))
+                        addView(Ui.text(this@ToolsActivity, "BPM", 11f, Ui.GREY).apply { letterSpacing = 0.14f; setPadding(dp(8), 0, 0, 0) })
+                    }, LinearLayout.LayoutParams(0, WRAP, 1f))
+                    for (i in 0 until 4) addView(View(this@ToolsActivity).apply {
+                        background = Ui.rounded(this@ToolsActivity, if (i == 0) Ui.RED else Ui.LINE, 8f)
+                    }, LinearLayout.LayoutParams(dp(if (i == 0) 14 else 8), dp(if (i == 0) 14 else 8)).apply { setMargins(dp(12), 0, 0, dp(4)) })
+                })
+                addView(Ui.text(this@ToolsActivity, "4/4 · ALLEGRO", 10f, Ui.GREY).apply { letterSpacing = 0.14f }, LinearLayout.LayoutParams(WRAP, WRAP).apply { setMargins(0, dp(6), 0, 0) })
+            })
+            else -> {
+                val pw = PasswordActivity.sample(12)
+                box("ŞİFRE ÜRETİCİ", PasswordActivity::class.java, {
+                    addView(Ui.text(this@ToolsActivity, pw, 22f, Ui.WHITE, bold = true).apply { letterSpacing = 0.18f; maxLines = 1 })
+                    addView(LinearLayout(this@ToolsActivity).apply {
+                        orientation = LinearLayout.HORIZONTAL
+                        gravity = Gravity.CENTER_VERTICAL
+                        addView(LinearLayout(this@ToolsActivity).apply {
+                            orientation = LinearLayout.HORIZONTAL
+                            for (i in 0 until 5) addView(View(this@ToolsActivity).apply {
+                                background = Ui.rounded(this@ToolsActivity, if (i < 4) Ui.WHITE else Ui.BORDER2, 2f)
+                            }, LinearLayout.LayoutParams(dp(18), dp(3)).apply { setMargins(0, 0, dp(4), 0) })
+                        }, LinearLayout.LayoutParams(0, WRAP, 1f))
+                        addView(Ui.text(this@ToolsActivity, "12 KRK · GÜÇLÜ", 10f, Ui.GREY).apply { letterSpacing = 0.14f })
+                    }, LinearLayout.LayoutParams(MATCH, WRAP).apply { setMargins(0, dp(10), 0, 0) })
+                })
+            }
+        }
+    }
+
+    override fun onSensorChanged(e: SensorEvent) {
+        val ax = e.values[0]; val ay = e.values[1]; val az = e.values[2]
+        val tx = Math.toDegrees(Math.atan2(ax.toDouble(), Math.sqrt((ay * ay + az * az).toDouble()))).toFloat()
+        val ty = -Math.toDegrees(Math.atan2(ay.toDouble(), Math.sqrt((ax * ax + az * az).toDouble()))).toFloat()
+        bubble?.let { it.bx = tx * 0.4f; it.by = ty * 0.4f; it.invalidate() }
+        val dist = hypot(tx, ty)
+        tilt?.text = if (dist < 0.5f) "● DÜZ" else String.format(Locale.US, "%.1f", dist * 0.6f).replace('.', ',') + "° EĞİM"
+    }
+
+    override fun onAccuracyChanged(s: Sensor?, a: Int) {}
 
     override fun onResume() {
         super.onResume()
         h.post(tick)
+        if (bubble != null) sm.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)?.let { sm.registerListener(this, it, SensorManager.SENSOR_DELAY_UI) }
     }
 
     override fun onPause() {
         super.onPause()
         h.removeCallbacks(tick)
+        sm.unregisterListener(this)
     }
 }
 
-/** Şifre üretici (tasarım 20). Cihazda, SecureRandom ile üretilir; hiçbir yere gönderilmez. */
+/** 9×9 mini baloncuk alanı (Araçlar sayfasındaki Su terazisi kartı). */
+private class MiniBubble(ctx: Context) : View(ctx) {
+    var bx = 0f
+    var by = 0f
+    private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val d = ctx.resources.displayMetrics.density
+
+    override fun onDraw(c: Canvas) {
+        val cell = 12 * d
+        for (r in -4..4) for (col in -4..4) {
+            val dist = hypot(col.toFloat(), r.toFloat())
+            val bd = hypot(col - bx, r - by)
+            val color = when {
+                bd < 1.35f -> Ui.WHITE
+                dist > 3.4f && dist < 4.4f -> Ui.LINE
+                dist < 0.6f -> Ui.BORDER2
+                else -> 0
+            }
+            if (color == 0) continue
+            paint.color = color
+            c.drawCircle((col + 4 + 0.5f) * cell, (r + 4 + 0.5f) * cell, 4.5f * d, paint)
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------------------------
+// Şifre üretici (tasarım 20)
+// ---------------------------------------------------------------------------------------------
+
+/** 33 noktalı uzunluk ölçeği: dokunup sürükleyerek 8–40 arası seçilir. */
+private class DotScale(ctx: Context, private val onValue: (Int) -> Unit) : View(ctx) {
+    var value = 16
+    private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val d = ctx.resources.displayMetrics.density
+
+    override fun onMeasure(w: Int, h: Int) = setMeasuredDimension(MeasureSpec.getSize(w), (30 * d).toInt())
+
+    override fun onDraw(c: Canvas) {
+        val slot = width / 33f
+        val cur = value - 8
+        for (i in 0 until 33) {
+            paint.color = if (i < cur) Ui.WHITE else if (i == cur) Ui.RED else Ui.BORDER2
+            c.drawCircle((i + 0.5f) * slot, 16 * d, 2 * d, paint)
+        }
+    }
+
+    override fun onTouchEvent(e: MotionEvent): Boolean {
+        if (e.actionMasked == MotionEvent.ACTION_DOWN || e.actionMasked == MotionEvent.ACTION_MOVE) {
+            parent?.requestDisallowInterceptTouchEvent(true)
+            val f = (e.x / width).coerceIn(0f, 1f)
+            onValue((8 + (f * 32).roundToInt()).coerceIn(8, 40))
+        }
+        return true
+    }
+}
+
 class PasswordActivity : BaseActivity() {
+    companion object {
+        private val SETS = listOf("ABCDEFGHJKLMNPQRSTUVWXYZ", "abcdefghjkmnpqrstuvwxyz", "23456789", "#%&*+=?!@-_")
+
+        fun make(len: Int, on: BooleanArray, rnd: SecureRandom = SecureRandom()): String {
+            val active = SETS.filterIndexed { i, _ -> on[i] }
+            val pool = active.joinToString("")
+            val chars = ArrayList<Char>(len)
+            for (s in active) chars.add(s[rnd.nextInt(s.length)])
+            while (chars.size < len) chars.add(pool[rnd.nextInt(pool.length)])
+            for (i in chars.size - 1 downTo 1) {
+                val j = rnd.nextInt(i + 1)
+                val t = chars[i]; chars[i] = chars[j]; chars[j] = t
+            }
+            return chars.joinToString("")
+        }
+
+        fun sample(len: Int = 16): String = make(len, booleanArrayOf(true, true, true, true))
+    }
+
+    private val h = Handler(Looper.getMainLooper())
     private val rnd = SecureRandom()
     private var len = 16
     private val on = booleanArrayOf(true, true, true, true)
     private val names = listOf("BÜYÜK HARF", "KÜÇÜK HARF", "RAKAM", "SEMBOL")
-    private val sets = listOf("ABCDEFGHJKLMNPQRSTUVWXYZ", "abcdefghjkmnpqrstuvwxyz", "23456789", "#%&*+=?!@-_")
     private var pw = ""
     private lateinit var pwView: TextView
     private lateinit var strengthText: TextView
     private lateinit var lenText: TextView
     private lateinit var bars: LinearLayout
-    private val optViews = mutableListOf<TextView>()
+    private lateinit var scale: DotScale
+    private lateinit var copyBtn: TextView
+    private val optViews = mutableListOf<LinearLayout>()
+    private val optDots = mutableListOf<TextView>()
+    private val optLabels = mutableListOf<TextView>()
+    private var step = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         fun dp(v: Int) = ToolUi.dp(this, v)
-        pwView = Ui.text(this, "", 22f, Ui.WHITE, bold = true).apply {
-            letterSpacing = 0.06f
-            setLineSpacing(0f, 1.25f)
-            minHeight = dp(110)
+        pwView = Ui.text(this, "", 30f, Ui.WHITE, bold = true).apply {
+            letterSpacing = 0.08f
+            setLineSpacing(0f, 1.2f)
+            minHeight = dp(132)
         }
         strengthText = Ui.text(this, "", 11f, Ui.WHITE, bold = true).apply { letterSpacing = 0.14f }
         bars = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        lenText = Ui.display(this, "", 36f)
+        lenText = Ui.display(this, "", 44f)
+        scale = DotScale(this) { v -> if (v != len) { len = v; generate() } }
 
         val card = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            background = Ui.rounded(this@PasswordActivity, Ui.SURFACE, 28f, Ui.BORDER)
-            setPadding(dp(20), dp(18), dp(20), dp(18))
+            background = Ui.rounded(this@PasswordActivity, Ui.SURFACE, 32f, Ui.BORDER)
+            setPadding(dp(20), dp(22), dp(20), dp(22))
             addView(LinearLayout(this@PasswordActivity).apply {
                 orientation = LinearLayout.HORIZONTAL
-                addView(Ui.text(this@PasswordActivity, "ŞİFRE", 10f, Ui.GREY).apply { letterSpacing = 0.18f },
-                    LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+                gravity = Gravity.CENTER_VERTICAL
+                addView(Ui.text(this@PasswordActivity, "ŞİFRE", 10f, Ui.GREY).apply { letterSpacing = 0.18f }, LinearLayout.LayoutParams(0, WRAP, 1f))
                 addView(strengthText)
             })
-            addView(pwView, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { setMargins(0, dp(14), 0, dp(14)) })
+            addView(pwView, LinearLayout.LayoutParams(MATCH, WRAP).apply { setMargins(0, dp(18), 0, dp(18)) })
             addView(bars)
         }
 
-        val seek = SeekBar(this).apply {
-            max = 32
-            progress = len - 8
-            progressTintList = ColorStateList.valueOf(Ui.WHITE)
-            thumbTintList = ColorStateList.valueOf(Ui.RED)
-            progressBackgroundTintList = ColorStateList.valueOf(Ui.LINE)
-            contentDescription = "Uzunluk"
-            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-                override fun onProgressChanged(s: SeekBar?, p: Int, fromUser: Boolean) {
-                    len = p + 8
-                    generate()
-                }
-                override fun onStartTrackingTouch(s: SeekBar?) {}
-                override fun onStopTrackingTouch(s: SeekBar?) {}
-            })
-        }
         val lenRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.BOTTOM
-            addView(Ui.text(this@PasswordActivity, "UZUNLUK", 10f, Ui.GREY).apply { letterSpacing = 0.18f },
-                LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+            addView(Ui.text(this@PasswordActivity, "UZUNLUK", 10f, Ui.GREY).apply { letterSpacing = 0.18f }, LinearLayout.LayoutParams(0, WRAP, 1f))
             addView(lenText)
         }
 
@@ -306,36 +740,48 @@ class PasswordActivity : BaseActivity() {
             val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
             for (c in 0 until 2) {
                 val i = r * 2 + c
-                val v = ToolUi.ghost(this, names[i], true) {
-                    val after = on.copyOf().also { it[i] = !it[i] }
-                    if (after.none { it }) return@ghost
-                    on[i] = !on[i]
-                    generate()
+                val label = Ui.text(this, names[i], 11f, Ui.WHITE, bold = true).apply { letterSpacing = 0.1f }
+                val dot = Ui.text(this, "●", 11f, Ui.RED)
+                optLabels.add(label); optDots.add(dot)
+                val cell = LinearLayout(this).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    gravity = Gravity.CENTER_VERTICAL
+                    setPadding(dp(16), 0, dp(16), 0)
+                    addView(label, LinearLayout.LayoutParams(0, WRAP, 1f))
+                    addView(dot)
+                    Ui.pressAnim(this)
+                    setOnClickListener {
+                        val after = on.copyOf().also { it[i] = !it[i] }
+                        if (after.none { it }) return@setOnClickListener
+                        on[i] = !on[i]
+                        generate()
+                    }
                 }
-                optViews.add(v)
-                row.addView(v, LinearLayout.LayoutParams(0, dp(52), 1f).apply {
-                    setMargins(if (c == 0) 0 else dp(4), 0, if (c == 0) dp(4) else 0, 0)
-                })
+                optViews.add(cell)
+                row.addView(cell, LinearLayout.LayoutParams(0, dp(56), 1f).apply { setMargins(if (c == 0) 0 else dp(4), 0, if (c == 0) dp(4) else 0, 0) })
             }
-            grid.addView(row, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { setMargins(0, dp(4), 0, 0) })
+            grid.addView(row, LinearLayout.LayoutParams(MATCH, WRAP).apply { setMargins(0, if (r == 0) 0 else dp(8), 0, 0) })
         }
 
-        val copy = ToolUi.ghost(this, "KOPYALA", true) { copy() }.apply { setTextColor(Ui.WHITE) }
-        val regen = ToolUi.ghost(this, "YENİLE", false) { generate() }
+        copyBtn = outlineBtn(this, "KOPYALA", true, Ui.WHITE, Ui.WHITE) { copy() }
+        val regen = outlineBtn(this, "YENİLE", false, Ui.LINE, Ui.WHITE) { generate() }
         val buttons = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
-            addView(copy, LinearLayout.LayoutParams(0, dp(54), 1f).apply { setMargins(0, 0, dp(8), 0) })
-            addView(regen, LinearLayout.LayoutParams(dp(120), dp(54)))
+            addView(copyBtn, LinearLayout.LayoutParams(0, dp(56), 1f).apply { setMargins(0, 0, dp(10), 0) })
+            addView(regen, LinearLayout.LayoutParams(dp(120), dp(56)))
         }
 
         val body = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            addView(card, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
-            addView(lenRow, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { setMargins(0, dp(20), 0, 0) })
-            addView(seek, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(40)))
-            addView(grid, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { setMargins(0, dp(10), 0, 0) })
+            addView(card, LinearLayout.LayoutParams(MATCH, WRAP))
+            addView(LinearLayout(this@PasswordActivity).apply {
+                orientation = LinearLayout.VERTICAL
+                addView(lenRow, LinearLayout.LayoutParams(MATCH, WRAP))
+                addView(scale, LinearLayout.LayoutParams(MATCH, dp(30)))
+            }, LinearLayout.LayoutParams(MATCH, WRAP).apply { setMargins(0, dp(18), 0, 0) })
+            addView(grid, LinearLayout.LayoutParams(MATCH, WRAP).apply { setMargins(0, dp(18), 0, 0) })
             addView(View(this@PasswordActivity), LinearLayout.LayoutParams(1, 0, 1f))
-            addView(buttons, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { setMargins(0, dp(16), 0, 0) })
+            addView(buttons, LinearLayout.LayoutParams(MATCH, WRAP).apply { setMargins(0, dp(18), 0, 0) })
         }
         ToolUi.screen(this, "ŞİFRE", "CİHAZDA ÜRETİLİR", ScrollView(this).apply {
             isFillViewport = true
@@ -345,21 +791,29 @@ class PasswordActivity : BaseActivity() {
         generate()
     }
 
+    /** Yeni şifre üretir; ekranda soldan sağa çözülen karışık karakter animasyonu (tasarım: 40 ms adım). */
     private fun generate() {
-        val active = sets.filterIndexed { i, _ -> on[i] }
-        val pool = active.joinToString("")
-        val chars = ArrayList<Char>(len)
-        // Açık olan her tür en az bir kez geçsin.
-        for (s in active) chars.add(s[rnd.nextInt(s.length)])
-        while (chars.size < len) chars.add(pool[rnd.nextInt(pool.length)])
-        for (i in chars.size - 1 downTo 1) {
-            val j = rnd.nextInt(i + 1)
-            val t = chars[i]; chars[i] = chars[j]; chars[j] = t
+        pw = make(len, on, rnd)
+        val pool = SETS.filterIndexed { i, _ -> on[i] }.joinToString("")
+        h.removeCallbacksAndMessages(null)
+        step = 0
+        val tick = object : Runnable {
+            override fun run() {
+                step++
+                val reveal = step * 2
+                if (reveal >= len) { pwView.text = pw; return }
+                val sb = StringBuilder()
+                for (i in 0 until len) sb.append(if (i < reveal) pw[i] else pool[rnd.nextInt(pool.length)])
+                pwView.text = sb
+                h.postDelayed(this, 40)
+            }
         }
-        pw = chars.joinToString("")
-        pwView.text = pw
-        lenText.text = len.toString()
+        pwView.text = pw.take(0)
+        h.post(tick)
 
+        lenText.text = len.toString()
+        scale.value = len
+        scale.invalidate()
         val kinds = on.count { it }
         val score = minOf(5, Math.round(len / 40f * 3f + kinds * 0.6f))
         strengthText.text = when {
@@ -371,14 +825,14 @@ class PasswordActivity : BaseActivity() {
         }
         bars.removeAllViews()
         for (i in 0 until 5) {
-            val c = if (i < score) (if (score <= 2) Ui.RED else Ui.WHITE) else Ui.OFF
+            val c = if (i < score) (if (score <= 2) Ui.RED else Ui.WHITE) else Ui.BORDER2
             bars.addView(View(this).apply { background = Ui.rounded(this@PasswordActivity, c, 2f) },
                 LinearLayout.LayoutParams(0, ToolUi.dp(this, 3), 1f).apply { setMargins(0, 0, if (i < 4) ToolUi.dp(this@PasswordActivity, 5) else 0, 0) })
         }
         optViews.forEachIndexed { i, v ->
-            v.setTextColor(if (on[i]) Ui.WHITE else Ui.GREY)
             v.background = Ui.rounded(this, Color.TRANSPARENT, 28f, if (on[i]) Ui.WHITE else Ui.LINE)
-            v.text = if (on[i]) "● ${names[i]}" else names[i]
+            optLabels[i].setTextColor(if (on[i]) Ui.WHITE else Ui.GREY)
+            optDots[i].alpha = if (on[i]) 1f else 0f
         }
     }
 
@@ -389,22 +843,37 @@ class PasswordActivity : BaseActivity() {
             clip.description.extras = PersistableBundle().apply { putBoolean("android.content.extra.IS_SENSITIVE", true) }
         }
         cm.setPrimaryClip(clip)
-        Store.toast(this, "KOPYALANDI")
+        copyBtn.text = ToolUi.dotText("KOPYALANDI")
+        h.postDelayed({ copyBtn.text = ToolUi.dotText("KOPYALA") }, 1500)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        h.removeCallbacksAndMessages(null)
     }
 }
 
-/** Saat (tasarım 14a): yerel saat, 60 noktalı saniye şeridi ve dünya saatleri. */
+// ---------------------------------------------------------------------------------------------
+// Saat (tasarım 14a)
+// ---------------------------------------------------------------------------------------------
+
 class ClockActivity : BaseActivity() {
     private val h = Handler(Looper.getMainLooper())
     private lateinit var hm: TextView
     private lateinit var ss: TextView
-    private lateinit var dots: DotField
+    private lateinit var dots: DotsView
     private lateinit var infoView: TextView
+    private lateinit var list: LinearLayout
     private class City(val name: String, val zone: String)
-    private val cities = listOf(
+
+    private val all = listOf(
         City("LONDRA", "Europe/London"), City("NEW YORK", "America/New_York"),
-        City("TOKYO", "Asia/Tokyo"), City("DUBAİ", "Asia/Dubai")
+        City("TOKYO", "Asia/Tokyo"), City("DUBAİ", "Asia/Dubai"),
+        City("PARİS", "Europe/Paris"), City("BERLİN", "Europe/Berlin"), City("MOSKOVA", "Europe/Moscow"),
+        City("LOS ANGELES", "America/Los_Angeles"), City("SİDNEY", "Australia/Sydney"),
+        City("PEKİN", "Asia/Shanghai"), City("SİNGAPUR", "Asia/Singapore"), City("SAO PAULO", "America/Sao_Paulo")
     )
+    private val shown = mutableListOf<City>()
     private val timeViews = mutableListOf<TextView>()
     private val noteViews = mutableListOf<TextView>()
     private val dayViews = mutableListOf<View>()
@@ -420,15 +889,64 @@ class ClockActivity : BaseActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         fun dp(v: Int) = ToolUi.dp(this, v)
+        val ids = getSharedPreferences("essentiallite_prefs", MODE_PRIVATE).getString("clock_cities", null)
+        (ids?.split(',')?.mapNotNull { it.toIntOrNull() }?.filter { it in all.indices } ?: listOf(0, 1, 2, 3)).forEach { shown.add(all[it]) }
         hm = Ui.display(this, "", 84f)
         ss = Ui.display(this, "", 28f, Ui.RED)
-        dots = DotField(this, 60, 1)
-        infoView = Ui.text(this, "", 10f, Ui.GREY).apply { letterSpacing = 0.14f }
+        dots = DotsView(this, 60, 1, 4f, 4f)
+        infoView = Ui.text(this, "", 11f, Ui.GREY).apply { letterSpacing = 0.16f }
+        list = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
 
-        val list = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        for (c in cities) {
+        val add = outlineBtn(this, "ŞEHİR EKLE", true, Ui.LINE, Ui.WHITE) { pickCity() }.apply { textSize = 11f; letterSpacing = 0.16f; setPadding(dp(20), 0, dp(20), 0) }
+        val body = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            addView(ToolUi.tabs(this@ClockActivity, 0), LinearLayout.LayoutParams(MATCH, dp(44)))
+            addView(LinearLayout(this@ClockActivity).apply {
+                orientation = LinearLayout.VERTICAL
+                addView(LinearLayout(this@ClockActivity).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    gravity = Gravity.BOTTOM
+                    addView(hm)
+                    addView(ss, LinearLayout.LayoutParams(WRAP, WRAP).apply { setMargins(dp(10), 0, 0, dp(2)) })
+                })
+                addView(dots, LinearLayout.LayoutParams(MATCH, dp(4)).apply { setMargins(0, dp(18), 0, 0) })
+                addView(infoView, LinearLayout.LayoutParams(WRAP, WRAP).apply { setMargins(0, dp(14), 0, 0) })
+            }, LinearLayout.LayoutParams(MATCH, WRAP).apply { setMargins(0, dp(18), 0, 0) })
+            addView(View(this@ClockActivity).apply { setBackgroundColor(Ui.BORDER) }, LinearLayout.LayoutParams(MATCH, dp(1)).apply { setMargins(0, dp(18), 0, 0) })
+            addView(ScrollView(this@ClockActivity).apply {
+                isVerticalScrollBarEnabled = false
+                addView(LinearLayout(this@ClockActivity).apply {
+                    orientation = LinearLayout.VERTICAL
+                    addView(list)
+                    addView(add, LinearLayout.LayoutParams(WRAP, dp(44)).apply { setMargins(0, dp(14), 0, 0) })
+                })
+            }, LinearLayout.LayoutParams(MATCH, 0, 1f))
+        }
+        ToolUi.screen(this, "SAAT", ToolUi.dateLabel(), body)
+        buildList()
+        update()
+    }
+
+    private fun save() {
+        getSharedPreferences("essentiallite_prefs", MODE_PRIVATE).edit()
+            .putString("clock_cities", shown.joinToString(",") { all.indexOf(it).toString() }).apply()
+    }
+
+    private fun pickCity() {
+        val free = all.filter { it !in shown }
+        if (free.isEmpty()) { Store.toast(this, "TÜM ŞEHİRLER EKLİ"); return }
+        Sheet.show(this, "ŞEHİR EKLE", null, free.take(6).map { c ->
+            Sheet.Action(c.name, Ui.WHITE) { shown.add(c); save(); buildList(); update() }
+        } + Sheet.Action("VAZGEÇ", Ui.GREY) {})
+    }
+
+    private fun buildList() {
+        fun dp(v: Int) = ToolUi.dp(this, v)
+        list.removeAllViews()
+        timeViews.clear(); noteViews.clear(); dayViews.clear()
+        for (c in shown) {
             val time = Ui.display(this, "", 32f)
-            val note = Ui.text(this, "", 10f, Ui.GREY).apply { letterSpacing = 0.12f }
+            val note = Ui.text(this, "", 10f, Ui.GREY).apply { letterSpacing = 0.14f }
             val dot = View(this)
             timeViews.add(time); noteViews.add(note); dayViews.add(dot)
             list.addView(LinearLayout(this).apply {
@@ -438,34 +956,20 @@ class ClockActivity : BaseActivity() {
                 addView(LinearLayout(this@ClockActivity).apply {
                     orientation = LinearLayout.VERTICAL
                     addView(Ui.text(this@ClockActivity, c.name, 13f, Ui.WHITE, bold = true).apply { letterSpacing = 0.14f })
-                    addView(note, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { setMargins(0, dp(4), 0, 0) })
-                }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+                    addView(note, LinearLayout.LayoutParams(WRAP, WRAP).apply { setMargins(0, dp(6), 0, 0) })
+                }, LinearLayout.LayoutParams(0, WRAP, 1f))
                 addView(dot, LinearLayout.LayoutParams(dp(8), dp(8)).apply { setMargins(0, 0, dp(12), 0) })
                 addView(time)
-            }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
-            list.addView(View(this).apply { setBackgroundColor(Ui.BORDER) },
-                LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(1)))
+                setOnLongClickListener {
+                    Sheet.show(this@ClockActivity, c.name, null, listOf(
+                        Sheet.Action("KALDIR", Ui.RED) { shown.remove(c); save(); buildList(); update() },
+                        Sheet.Action("VAZGEÇ", Ui.GREY) {}
+                    ))
+                    true
+                }
+            }, LinearLayout.LayoutParams(MATCH, WRAP))
+            list.addView(View(this).apply { setBackgroundColor(Ui.BORDER) }, LinearLayout.LayoutParams(MATCH, dp(1)))
         }
-
-        val body = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            addView(LinearLayout(this@ClockActivity).apply {
-                orientation = LinearLayout.HORIZONTAL
-                gravity = Gravity.BOTTOM
-                addView(hm)
-                addView(ss, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { setMargins(dp(8), 0, 0, 0) })
-            })
-            addView(dots, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(10)).apply { setMargins(0, dp(14), 0, 0) })
-            addView(infoView, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { setMargins(0, dp(12), 0, dp(18)) })
-            addView(View(this@ClockActivity).apply { setBackgroundColor(Ui.BORDER) },
-                LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(1)))
-            addView(list)
-        }
-        ToolUi.screen(this, "SAAT", ToolUi.dateLabel(), ScrollView(this).apply {
-            isVerticalScrollBarEnabled = false
-            addView(body)
-        })
-        update()
     }
 
     private fun update() {
@@ -480,22 +984,22 @@ class ClockActivity : BaseActivity() {
         val city = tz.id.substringAfter('/').replace('_', ' ').uppercase(TR)
         val day = SimpleDateFormat("EEEE · d MMMM", TR).format(now.time).uppercase(TR)
         val off = tz.getOffset(now.timeInMillis) / 3_600_000.0
-        val utc = "UTC" + (if (off >= 0) "+" else "−") + (if (off % 1.0 == 0.0) Math.abs(off).toInt().toString() else Math.abs(off).toString())
+        val utc = "UTC" + (if (off >= 0) "+" else "−") + (if (off % 1.0 == 0.0) abs(off).toInt().toString() else abs(off).toString())
         infoView.text = "$city · $day · $utc"
 
-        cities.forEachIndexed { i, c ->
+        shown.forEachIndexed { i, c ->
             val z = TimeZone.getTimeZone(c.zone)
             val cal = Calendar.getInstance(z)
             val hour = cal.get(Calendar.HOUR_OF_DAY)
             timeViews[i].text = ToolUi.p2(hour.toLong()) + ":" + ToolUi.p2(cal.get(Calendar.MINUTE).toLong())
             val diffMin = (z.getOffset(now.timeInMillis) - tz.getOffset(now.timeInMillis)) / 60_000
             val sign = if (diffMin >= 0) "+" else "−"
-            val a = Math.abs(diffMin)
+            val a = abs(diffMin)
             val rel = if (a % 60 == 0) "$sign${a / 60} SA" else "$sign${a / 60},${a % 60} SA"
             val localDay = now.get(Calendar.DAY_OF_YEAR) + now.get(Calendar.YEAR) * 366
             val cityDay = cal.get(Calendar.DAY_OF_YEAR) + cal.get(Calendar.YEAR) * 366
             val dayText = when {
-                cityDay > localDay -> "YARIN"
+                cityDay > localDay -> if (hour < 12) "YARIN SABAH" else "YARIN"
                 cityDay < localDay -> "DÜN"
                 else -> "AYNI GÜN"
             }
@@ -515,26 +1019,31 @@ class ClockActivity : BaseActivity() {
     }
 }
 
-/** 60 noktalı saniye halkası. [sec] dolu noktaları, geçerli saniye kırmızı baş noktayı belirler. */
+// ---------------------------------------------------------------------------------------------
+// Kronometre (tasarım 14c)
+// ---------------------------------------------------------------------------------------------
+
+/** 60 noktalı saniye halkası (300 dp alan, 140 dp yarıçap). */
 private class StopRing(ctx: Context) : View(ctx) {
     var sec = 0
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val d = ctx.resources.displayMetrics.density
+
+    override fun onMeasure(w: Int, h: Int) = setMeasuredDimension((300 * d).toInt(), (300 * d).toInt())
 
     override fun onDraw(canvas: Canvas) {
         val cx = width / 2f
         val cy = height / 2f
-        val rad = minOf(cx, cy) - ToolUi.dp(context, 6)
         for (i in 0 until 60) {
             val a = Math.PI * 2 * i / 60 - Math.PI / 2
             val head = i == sec
-            val r = ToolUi.dp(context, if (head) 4 else if (i % 5 == 0) 3 else 2) .toFloat()
-            paint.color = if (head) Ui.RED else if (i < sec) Ui.WHITE else Ui.GRID
-            canvas.drawCircle(cx + (rad * Math.cos(a)).toFloat(), cy + (rad * Math.sin(a)).toFloat(), r, paint)
+            val sz = if (head) 8f else if (i % 5 == 0) 6f else 4f
+            paint.color = if (head) Ui.RED else if (i < sec) Ui.WHITE else Ui.BORDER2
+            canvas.drawCircle(cx + (140 * d * Math.cos(a)).toFloat(), cy + (140 * d * Math.sin(a)).toFloat(), sz / 2 * d, paint)
         }
     }
 }
 
-/** Kronometre (tasarım 14c): başlat/durdur, tur, sıfırla. */
 class StopwatchActivity : BaseActivity() {
     private val h = Handler(Looper.getMainLooper())
     private var running = false
@@ -563,23 +1072,22 @@ class StopwatchActivity : BaseActivity() {
         super.onCreate(savedInstanceState)
         fun dp(v: Int) = ToolUi.dp(this, v)
         ring = StopRing(this)
-        mainView = Ui.display(this, "00:00", 46f).apply { gravity = Gravity.CENTER_HORIZONTAL }
-        csView = Ui.display(this, ".00", 22f, Ui.RED).apply { gravity = Gravity.CENTER_HORIZONTAL }
-        val center = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER
-            addView(mainView)
-            addView(csView)
-        }
+        mainView = Ui.display(this, "00:00", 48f).apply { gravity = Gravity.CENTER_HORIZONTAL }
+        csView = Ui.display(this, ".00", 21f, Ui.RED).apply { gravity = Gravity.CENTER_HORIZONTAL }
         val face = FrameLayout(this).apply {
-            addView(ring, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
-            addView(center, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+            addView(ring, FrameLayout.LayoutParams(dp(300), dp(300)))
+            addView(LinearLayout(this@StopwatchActivity).apply {
+                orientation = LinearLayout.VERTICAL
+                gravity = Gravity.CENTER
+                addView(mainView, LinearLayout.LayoutParams(MATCH, WRAP))
+                addView(csView, LinearLayout.LayoutParams(MATCH, WRAP).apply { setMargins(0, dp(12), 0, 0) })
+            }, FrameLayout.LayoutParams(dp(300), dp(300)))
         }
 
         leftBtn = Ui.text(this, "", 11f, Ui.WHITE, bold = true).apply {
             gravity = Gravity.CENTER
-            letterSpacing = 0.12f
-            background = Ui.rounded(this@StopwatchActivity, Color.TRANSPARENT, 60f, Ui.LINE)
+            letterSpacing = 0.14f
+            background = Ui.rounded(this@StopwatchActivity, Color.TRANSPARENT, 44f, Ui.LINE)
             Ui.pressAnim(this)
             setOnClickListener { lapOrReset() }
         }
@@ -588,32 +1096,33 @@ class StopwatchActivity : BaseActivity() {
             Ui.pressAnim(this)
             setOnClickListener { toggle() }
         }
-        lapCount = Ui.display(this, "00", 26f)
+        lapCount = Ui.display(this, "00", 24f)
         val controls = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            addView(leftBtn, LinearLayout.LayoutParams(dp(80), dp(80)))
+            addView(leftBtn, LinearLayout.LayoutParams(dp(88), dp(88)))
             addView(View(this@StopwatchActivity), LinearLayout.LayoutParams(0, 1, 1f))
-            addView(centerBtn, LinearLayout.LayoutParams(dp(96), dp(96)))
+            addView(centerBtn, LinearLayout.LayoutParams(dp(104), dp(104)))
             addView(View(this@StopwatchActivity), LinearLayout.LayoutParams(0, 1, 1f))
             addView(LinearLayout(this@StopwatchActivity).apply {
                 orientation = LinearLayout.VERTICAL
                 gravity = Gravity.END
                 addView(Ui.text(this@StopwatchActivity, "TUR", 10f, Ui.GREY).apply { letterSpacing = 0.14f })
                 addView(lapCount)
-            }, LinearLayout.LayoutParams(dp(80), ViewGroup.LayoutParams.WRAP_CONTENT))
+            }, LinearLayout.LayoutParams(dp(88), WRAP))
         }
         lapsBox = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
 
         val body = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            addView(face, LinearLayout.LayoutParams(dp(260), dp(260)).apply { gravity = Gravity.CENTER_HORIZONTAL })
-            addView(controls, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { setMargins(0, dp(16), 0, dp(12)) })
-            addView(View(this@StopwatchActivity).apply { setBackgroundColor(Ui.BORDER) }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(1)))
+            addView(ToolUi.tabs(this@StopwatchActivity, 2), LinearLayout.LayoutParams(MATCH, dp(44)))
+            addView(face, LinearLayout.LayoutParams(dp(300), dp(300)).apply { gravity = Gravity.CENTER_HORIZONTAL; setMargins(0, dp(18), 0, 0) })
+            addView(controls, LinearLayout.LayoutParams(MATCH, WRAP).apply { setMargins(dp(4), dp(18), dp(4), 0) })
+            addView(View(this@StopwatchActivity).apply { setBackgroundColor(Ui.BORDER) }, LinearLayout.LayoutParams(MATCH, dp(1)).apply { setMargins(0, dp(18), 0, 0) })
             addView(ScrollView(this@StopwatchActivity).apply {
                 isVerticalScrollBarEnabled = false
                 addView(lapsBox)
-            }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
+            }, LinearLayout.LayoutParams(MATCH, 0, 1f))
         }
         stateView = ToolUi.screen(this, "KRONOMETRE", "HAZIR", body)
         update()
@@ -663,23 +1172,28 @@ class StopwatchActivity : BaseActivity() {
 
     private fun renderControls() {
         leftBtn.text = if (running) "TUR" else "SIFIRLA"
-        leftBtn.alpha = if (running || elapsed() > 0) 1f else 0.35f
         leftBtn.isEnabled = running || elapsed() > 0
-        centerBtn.background = Ui.rounded(this, Color.TRANSPARENT, 60f, if (running) Ui.RED else Ui.WHITE)
+        leftBtn.alpha = if (leftBtn.isEnabled) 1f else 0.35f
+        centerBtn.background = GradientDrawable().apply {
+            shape = GradientDrawable.OVAL
+            setColor(Color.TRANSPARENT)
+            setStroke((1.5f * resources.displayMetrics.density).toInt(), if (running) Ui.RED else Ui.WHITE)
+        }
         centerBtn.removeAllViews()
         centerBtn.addView(
-            DotIcon(this, if (running) ToolUi.ICON_PAUSE else Ui.ICON_PLAY, if (running) Ui.RED else Ui.WHITE, 40),
-            FrameLayout.LayoutParams(ToolUi.dp(this, 40), ToolUi.dp(this, 40), Gravity.CENTER)
+            DotIcon(this, if (running) ToolUi.ICON_PAUSE else Ui.ICON_PLAY, if (running) Ui.RED else Ui.WHITE, 70),
+            FrameLayout.LayoutParams(ToolUi.dp(this, 70), ToolUi.dp(this, 70), Gravity.CENTER)
         )
         lapCount.text = ToolUi.p2(laps.size.toLong())
     }
 
     private fun renderLaps() {
+        fun dp(v: Int) = ToolUi.dp(this, v)
         lapsBox.removeAllViews()
         if (laps.isEmpty()) {
             lapsBox.addView(Ui.text(this, "TUR YOK · ÇALIŞIRKEN TUR'A BAS", 10f, Ui.GREY).apply {
-                letterSpacing = 0.14f
-                setPadding(0, ToolUi.dp(this@StopwatchActivity, 16), 0, 0)
+                letterSpacing = 0.16f
+                setPadding(0, dp(18), 0, 0)
             })
             return
         }
@@ -692,15 +1206,13 @@ class StopwatchActivity : BaseActivity() {
             lapsBox.addView(LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER_VERTICAL
-                setPadding(0, ToolUi.dp(this@StopwatchActivity, 11), 0, ToolUi.dp(this@StopwatchActivity, 11))
-                addView(Ui.text(this@StopwatchActivity, ToolUi.p2((i + 1).toLong()), 12f, Ui.GREY), LinearLayout.LayoutParams(ToolUi.dp(this@StopwatchActivity, 40), ViewGroup.LayoutParams.WRAP_CONTENT))
-                addView(Ui.text(this@StopwatchActivity, mark, 10f, if (mark == "EN HIZLI") Ui.WHITE else Ui.RED).apply { letterSpacing = 0.1f },
-                    LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
-                addView(Ui.text(this@StopwatchActivity, "+" + fmt(split), 12f, Ui.GREY).apply { setPadding(0, 0, ToolUi.dp(this@StopwatchActivity, 14), 0) })
-                addView(Ui.text(this@StopwatchActivity, fmt(total), 12f, Ui.WHITE))
+                setPadding(0, dp(11), 0, dp(11))
+                addView(Ui.text(this@StopwatchActivity, ToolUi.p2((i + 1).toLong()), 12f, Ui.GREY).apply { letterSpacing = 0.1f }, LinearLayout.LayoutParams(dp(56), WRAP))
+                addView(Ui.text(this@StopwatchActivity, mark, 12f, if (mark == "EN HIZLI") Ui.WHITE else Ui.RED).apply { letterSpacing = 0.1f }, LinearLayout.LayoutParams(0, WRAP, 1f))
+                addView(Ui.text(this@StopwatchActivity, "+" + fmt(split), 12f, Ui.GREY).apply { letterSpacing = 0.1f; gravity = Gravity.END }, LinearLayout.LayoutParams(dp(96), WRAP))
+                addView(Ui.text(this@StopwatchActivity, fmt(total), 12f, Ui.WHITE).apply { letterSpacing = 0.1f; gravity = Gravity.END }, LinearLayout.LayoutParams(dp(92), WRAP))
             })
-            lapsBox.addView(View(this).apply { setBackgroundColor(Ui.BORDER) },
-                LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ToolUi.dp(this, 1)))
+            lapsBox.addView(View(this).apply { setBackgroundColor(Ui.OFF) }, LinearLayout.LayoutParams(MATCH, dp(1)))
         }
     }
 
@@ -715,7 +1227,10 @@ class StopwatchActivity : BaseActivity() {
     }
 }
 
-/** Basit hesap makinesi (tasarım 15a). */
+// ---------------------------------------------------------------------------------------------
+// Hesap makinesi, basit (tasarım 15a)
+// ---------------------------------------------------------------------------------------------
+
 class CalcActivity : BaseActivity() {
     private var cur = "0"
     private var acc: Double? = null
@@ -730,25 +1245,34 @@ class CalcActivity : BaseActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         fun dp(v: Int) = ToolUi.dp(this, v)
-        exprView = Ui.text(this, "", 12f, Ui.GREY).apply { letterSpacing = 0.14f; gravity = Gravity.END }
-        dispView = Ui.display(this, "0", 62f).apply {
-            gravity = Gravity.END
-            maxLines = 1
-        }
+        exprView = Ui.text(this, "", 12f, Ui.GREY).apply { letterSpacing = 0.14f; gravity = Gravity.END; minHeight = dp(16) }
+        dispView = Ui.display(this, "0", 92f).apply { gravity = Gravity.END; maxLines = 1 }
         keysBox = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         val display = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.BOTTOM or Gravity.END
-            setPadding(dp(4), 0, dp(4), dp(8))
-            addView(exprView, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
-            addView(dispView, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+            setPadding(dp(4), 0, dp(4), 0)
+            addView(exprView, LinearLayout.LayoutParams(MATCH, WRAP))
+            addView(dispView, LinearLayout.LayoutParams(MATCH, WRAP).apply { setMargins(0, dp(10), 0, 0) })
         }
         val body = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            addView(display, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
-            addView(keysBox, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+            addView(display, LinearLayout.LayoutParams(MATCH, 0, 1f))
+            addView(keysBox, LinearLayout.LayoutParams(MATCH, WRAP).apply { setMargins(0, dp(16), 0, 0) })
         }
-        ToolUi.screen(this, "HESAP", "BASİT", body)
+        val right = ToolUi.screen(this, "HESAP", "", body, topGap = 16)
+        right.apply {
+            val s = SpannableStringBuilder("GELİŞMİŞ →")
+            s.setSpan(ForegroundColorSpan(Ui.RED), 8, 9, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            text = s
+            setTextColor(Ui.WHITE)
+            letterSpacing = 0.14f
+            gravity = Gravity.CENTER
+            background = Ui.rounded(this@CalcActivity, Color.TRANSPARENT, 22f, Ui.LINE)
+            setPadding(dp(18), 0, dp(18), 0)
+            minHeight = dp(44)
+            setOnClickListener { startActivity(Intent(this@CalcActivity, CalcAdvActivity::class.java)) }
+        }
         render()
     }
 
@@ -812,10 +1336,7 @@ class CalcActivity : BaseActivity() {
         render()
     }
 
-    private fun clear() {
-        cur = "0"; acc = null; op = null; fresh = false; expr = ""
-        render()
-    }
+    private fun clear() { cur = "0"; acc = null; op = null; fresh = false; expr = ""; render() }
 
     private fun back() {
         if (fresh || cur == "HATA") { clear(); return }
@@ -824,17 +1345,11 @@ class CalcActivity : BaseActivity() {
     }
 
     private fun sign() {
-        if (cur != "0" && cur != "HATA") {
-            cur = if (cur[0] == '-') cur.drop(1) else "-$cur"
-            render()
-        }
+        if (cur != "0" && cur != "HATA") { cur = if (cur[0] == '-') cur.drop(1) else "-$cur"; render() }
     }
 
     private fun pct() {
-        if (cur != "HATA") {
-            cur = toStr(num(cur) / 100); fresh = true
-            render()
-        }
+        if (cur != "HATA") { cur = toStr(num(cur) / 100); fresh = true; render() }
     }
 
     private fun key(label: String, kind: String, active: Boolean = false, onClick: () -> Unit): TextView {
@@ -842,17 +1357,16 @@ class CalcActivity : BaseActivity() {
             active -> Ui.WHITE
             kind == "eq" -> Ui.RED
             kind == "op" -> Ui.PROG
-            else -> Ui.BORDER2
+            else -> Ui.BORDER
         }
         val fg = when {
-            active -> Ui.WHITE
             kind == "eq" -> Ui.RED
             kind == "fn" -> Ui.GREY2
             else -> Ui.WHITE
         }
-        return Ui.text(this, label, if (kind == "op" || kind == "eq") 22f else 18f, fg, bold = true).apply {
+        return Ui.text(this, label, if (kind == "op" || kind == "eq") 26f else 22f, fg, bold = true).apply {
             gravity = Gravity.CENTER
-            background = Ui.rounded(this@CalcActivity, Color.TRANSPARENT, 32f, border)
+            background = Ui.rounded(this@CalcActivity, Color.TRANSPARENT, 39f, border)
             Ui.pressAnim(this)
             setOnClickListener { onClick() }
         }
@@ -863,10 +1377,10 @@ class CalcActivity : BaseActivity() {
         val shown = group(cur)
         dispView.text = shown
         dispView.textSize = when {
-            shown.length > 12 -> 30f
-            shown.length > 9 -> 38f
-            shown.length > 7 -> 48f
-            else -> 62f
+            shown.length > 12 -> 44f
+            shown.length > 9 -> 56f
+            shown.length > 7 -> 70f
+            else -> 92f
         }
         fun act(o: Char) = op == o && fresh
         val rows = listOf(
@@ -878,14 +1392,14 @@ class CalcActivity : BaseActivity() {
         )
         keysBox.removeAllViews()
         val d = ToolUi.dp(this, 1)
-        for (r in rows) {
+        for ((ri, r) in rows.withIndex()) {
             val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
             r.forEachIndexed { i, k ->
-                row.addView(k, LinearLayout.LayoutParams(0, ToolUi.dp(this, 64), 1f).apply {
+                row.addView(k, LinearLayout.LayoutParams(0, ToolUi.dp(this, 78), 1f).apply {
                     setMargins(if (i == 0) 0 else 5 * d, 0, if (i == r.size - 1) 0 else 5 * d, 0)
                 })
             }
-            keysBox.addView(row, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { setMargins(0, 0, 0, ToolUi.dp(this@CalcActivity, 10)) })
+            keysBox.addView(row, LinearLayout.LayoutParams(MATCH, WRAP).apply { setMargins(0, 0, 0, if (ri == rows.size - 1) 0 else ToolUi.dp(this@CalcActivity, 10)) })
         }
     }
 }

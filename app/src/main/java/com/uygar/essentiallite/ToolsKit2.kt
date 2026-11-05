@@ -44,7 +44,7 @@ private const val MATCH = ViewGroup.LayoutParams.MATCH_PARENT
 private const val WRAP = ViewGroup.LayoutParams.WRAP_CONTENT
 
 /** Çerçeveli düğme (tasarım: 56 dp, 28 dp köşe, 0,2 em harf aralığı). [dot] ise başta kırmızı nokta. */
-private fun outlineBtn(ctx: Context, label: String, dot: Boolean, border: Int, fg: Int, onClick: () -> Unit): TextView {
+internal fun outlineBtn(ctx: Context, label: String, dot: Boolean, border: Int, fg: Int, onClick: () -> Unit): TextView {
     val s = SpannableStringBuilder(if (dot) "● $label" else label)
     if (dot) s.setSpan(ForegroundColorSpan(Ui.RED), 0, 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
     return Ui.text(ctx, "", 12f, fg, bold = true).apply {
@@ -58,7 +58,7 @@ private fun outlineBtn(ctx: Context, label: String, dot: Boolean, border: Int, f
 }
 
 /** Tasarımdaki 52×26 anahtar: kırmızı iz ve düğme açık, gri kapalı. */
-private class DesignSwitch(ctx: Context, var on: Boolean, private val onChange: (Boolean) -> Unit) : View(ctx) {
+internal class DesignSwitch(ctx: Context, var on: Boolean, private val onChange: (Boolean) -> Unit) : View(ctx) {
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val d = ctx.resources.displayMetrics.density
 
@@ -84,7 +84,7 @@ private class DesignSwitch(ctx: Context, var on: Boolean, private val onChange: 
 }
 
 /** Izgara halinde yuvarlak noktalar. [colors] 0 olan hücre çizilmez. */
-private class DotsView(ctx: Context, private val cols: Int, private val rows: Int, private val dotDp: Float, private val pitchYDp: Float) : View(ctx) {
+internal class DotsView(ctx: Context, private val cols: Int, private val rows: Int, private val dotDp: Float, private val pitchYDp: Float) : View(ctx) {
     var colors = IntArray(cols * rows)
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val d = ctx.resources.displayMetrics.density
