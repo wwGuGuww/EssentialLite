@@ -149,6 +149,8 @@ class KeyComboService : AccessibilityService() {
         if (instance === this) instance = null
         stageContainer?.let { safeRemove(it) }
         stageScrim?.let { safeRemove(it) }
+        pick?.let { safeRemove(it) }
+        pick = null
         thumbWin?.let { safeRemove(it) }
         cardWin?.let { safeRemove(it) }
         stageContainer = null
@@ -276,6 +278,16 @@ class KeyComboService : AccessibilityService() {
         s.setOnClickListener { hidePanel() }
         wm().addView(s, ov(WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.MATCH_PARENT,
             Gravity.TOP, WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE))
+        // Yazı seçici: perde ile panel arasında durur; satırlar ekrandaki yerlerinde seçilebilir.
+        val pk = OcrPick(this).apply {
+            visibility = View.GONE
+            onEmpty = { hidePanel() }
+            onSelection = { _, count -> updateSelectionPill(count) }
+        }
+        wm().addView(pk, ov(WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.MATCH_PARENT,
+            Gravity.TOP or Gravity.START, WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS))
+        pick = pk
         val c = FrameLayout(this).apply {
             setPadding(dp(12), 0, dp(12), dp(24))
             visibility = View.GONE
@@ -315,6 +327,7 @@ class KeyComboService : AccessibilityService() {
     private fun hidePanel() {
         if (rec != null) stopVoice(keepPanel = false)
         val c = panel ?: return
+        pick?.let { it.clear(); it.visibility = View.GONE }
         val s = scrim
         panel = null
         scrim = null
@@ -350,6 +363,7 @@ class KeyComboService : AccessibilityService() {
 
     /** Ekran yakalama başlarken panel anında kaybolur (animasyonsuz). */
     private fun removePanelNow() {
+        pick?.let { it.clear(); it.visibility = View.GONE }
         stageContainer?.let {
             it.animate().cancel()
             it.visibility = View.GONE
@@ -411,20 +425,21 @@ class KeyComboService : AccessibilityService() {
             background = Ui.rounded(ctx, Ui.BG, 32f, Ui.BORDER2)
             setPadding(dp(16), dp(6), dp(16), dp(18))
             addView(header("", onClose = { hidePanel() }))
-            // Panel açılırken ekrandaki yazı okunur; yazıya dokunmak paneli kapatmaz, basılı tutmak kopyalar.
-            addView(Ui.text(ctx, "", 11f, Ui.GREY).apply {
-                letterSpacing = 0.04f
-                setLineSpacing(0f, 1.35f)
-                maxLines = 5
-                ellipsize = android.text.TextUtils.TruncateAt.END
-                setPadding(dp(4), dp(8), dp(4), dp(4))
+            // Ekrandaki yazılar panelde listelenmez; ekranda dokunularak seçilir. Burada yalnızca ipucu ve KOPYALA düğmesi var.
+            addView(Ui.text(ctx, "", 11f, Ui.GREY, bold = true).apply {
+                letterSpacing = 0.12f
+                setPadding(dp(4), dp(10), dp(4), dp(6))
                 visibility = View.GONE
                 isClickable = true
-                setOnLongClickListener {
-                    (getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager)
-                        .setPrimaryClip(android.content.ClipData.newPlainText("EL", panelText))
-                    Store.toast(ctx, "METİN KOPYALANDI")
-                    true
+                setOnClickListener {
+                    val p = pick ?: return@setOnClickListener
+                    val t = p.selectedText()
+                    if (t.isNotEmpty()) {
+                        (getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager)
+                            .setPrimaryClip(android.content.ClipData.newPlainText("EL", t))
+                        Store.toast(ctx, "KOPYALANDI")
+                        p.clearSelection()
+                    }
                 }
                 panelOcr = this
             })
@@ -964,24 +979,50 @@ class KeyComboService : AccessibilityService() {
     private var autoDismiss: Runnable? = null
     private var ocrView: TextView? = null
     private var panelOcr: TextView? = null
-    private var panelText = ""
+    private var pick: OcrPick? = null
 
-    /** Panelin açıldığı andaki ekran görüntüsünden yazıyı okur (cihazda, ağ yok); hazır olunca panelde gösterir. */
+    /** Seçim değişince paneldeki düğme: seçim varsa "KOPYALA · n SATIR", yoksa kısa bir ipucu. */
+    private fun updateSelectionPill(count: Int) {
+        val v = panelOcr ?: return
+        if (panel == null) return
+        val p = pick
+        if (count > 0) {
+            v.text = "● KOPYALA · $count SATIR"
+            v.setTextColor(Ui.WHITE)
+            v.visibility = View.VISIBLE
+        } else if (p != null && p.lineCount > 0) {
+            v.text = "YAZIYA DOKUN · BASILI TUTUP SÜRÜKLE"
+            v.setTextColor(Ui.GREY)
+            v.visibility = View.VISIBLE
+        } else v.visibility = View.GONE
+    }
+
+    /** Panel açıldığı andaki ekran görüntüsündeki yazıyı satır satır, ekrandaki konumlarıyla okur (cihazda, ağ yok). */
     private fun readPanelText(bmp: Bitmap) {
-        panelText = ""
+        val dm = resources.displayMetrics
         Thread {
-            val text = try {
+            val found: List<OcrPick.Line> = try {
                 val big = maxOf(bmp.width, bmp.height)
                 val scaled = if (big > 2600) Bitmap.createScaledBitmap(bmp, bmp.width * 2600 / big, bmp.height * 2600 / big, true) else bmp
+                val sx = dm.widthPixels / scaled.width.toFloat()
+                val sy = dm.heightPixels / scaled.height.toFloat()
                 val rec = com.google.mlkit.vision.text.TextRecognition.getClient(com.google.mlkit.vision.text.latin.TextRecognizerOptions.DEFAULT_OPTIONS)
                 try {
-                    com.google.android.gms.tasks.Tasks.await(rec.process(com.google.mlkit.vision.common.InputImage.fromBitmap(scaled, 0)), 20, java.util.concurrent.TimeUnit.SECONDS).text.trim()
+                    val res = com.google.android.gms.tasks.Tasks.await(rec.process(com.google.mlkit.vision.common.InputImage.fromBitmap(scaled, 0)), 20, java.util.concurrent.TimeUnit.SECONDS)
+                    res.textBlocks.flatMap { it.lines }.mapNotNull { l ->
+                        val b = l.boundingBox ?: return@mapNotNull null
+                        if (l.text.isBlank()) null
+                        else OcrPick.Line(l.text, android.graphics.RectF(b.left * sx, b.top * sy, b.right * sx, b.bottom * sy))
+                    }
                 } finally { rec.close(); if (scaled !== bmp) scaled.recycle(); bmp.recycle() }
-            } catch (e: Throwable) { "" }
+            } catch (e: Throwable) { emptyList() }
             main.post {
-                panelText = text
-                val v = panelOcr
-                if (panel != null && v != null && text.isNotEmpty()) { v.text = text; v.visibility = View.VISIBLE }
+                val p = pick
+                if (panel != null && p != null && found.isNotEmpty()) {
+                    p.setLines(found)
+                    p.visibility = View.VISIBLE
+                    updateSelectionPill(0)
+                }
             }
         }.start()
     }
