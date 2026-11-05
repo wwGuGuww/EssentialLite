@@ -89,26 +89,27 @@ class OcrPick(ctx: Context) : View(ctx) {
         return best
     }
 
+    // Satırlar ekran koordinatındadır; pencere ekranın tam köşesinde olmayabilir, bu yüzden dokunuşta raw koordinat kullanılır.
     override fun onTouchEvent(e: MotionEvent): Boolean {
         when (e.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
-                downX = e.x; downY = e.y; moved = false; dragging = false
+                downX = e.rawX; downY = e.rawY; moved = false; dragging = false
                 handler.postDelayed(longPress, ViewConfiguration.getLongPressTimeout().toLong())
             }
             MotionEvent.ACTION_MOVE -> {
-                if (hypot(e.x - downX, e.y - downY) > slop) {
+                if (hypot(e.rawX - downX, e.rawY - downY) > slop) {
                     moved = true
                     if (!dragging) handler.removeCallbacks(longPress)
                 }
                 if (dragging) {
-                    val i = hit(e.x, e.y)
+                    val i = hit(e.rawX, e.rawY)
                     if (i >= 0 && sel.add(i)) changed()
                 }
             }
             MotionEvent.ACTION_UP -> {
                 handler.removeCallbacks(longPress)
                 if (!dragging && !moved) {
-                    val i = hit(e.x, e.y)
+                    val i = hit(e.rawX, e.rawY)
                     if (i < 0) onEmpty()
                     else { if (!sel.add(i)) sel.remove(i); changed() }
                 }
@@ -120,6 +121,9 @@ class OcrPick(ctx: Context) : View(ctx) {
     }
 
     override fun onDraw(c: Canvas) {
+        val loc = IntArray(2)
+        getLocationOnScreen(loc)
+        c.translate(-loc[0].toFloat(), -loc[1].toFloat())
         lines.forEachIndexed { i, l ->
             val r = RectF(l.r.left - 3 * d, l.r.top - 2 * d, l.r.right + 3 * d, l.r.bottom + 2 * d)
             if (i in sel) {
