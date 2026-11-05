@@ -125,6 +125,12 @@ class SettingsActivity : BaseActivity() {
                 ))
             }
         }
+        val backupRow = Ui.text(this, "YEDEK VE GERİ YÜKLEME →", 11f, Ui.WHITE, bold = true).apply {
+            letterSpacing = 0.14f
+            setPadding(0, dp(18), 0, dp(18))
+            Ui.pressAnim(this)
+            setOnClickListener { startActivity(Intent(this@SettingsActivity, BackupActivity::class.java)) }
+        }
         val lockOn = Prefs.get(this, "applock", false)
         val lockRow = toggleRow("UYGULAMA KİLİDİ", "Açılışta parmak izi", lockOn) {
             if (lockOn) {
@@ -205,6 +211,7 @@ class SettingsActivity : BaseActivity() {
             addView(aiRow, matchWrap(8))
             addView(divider())
             addView(lockRow)
+            addView(backupRow)
             addView(divider())
             addView(calmRow)
             addView(divider())

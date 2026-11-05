@@ -8,8 +8,10 @@ import android.os.Bundle
 import android.view.Gravity
 import android.view.View
 import android.widget.EditText
+import android.widget.HorizontalScrollView
 import android.widget.ImageView
 import android.widget.LinearLayout
+import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
 import java.io.File
 
 /** Ekran görüntüsünü gösterir ve altına not eklenmesini sağlar. Not, aynı adlı .txt olarak saklanır. */
@@ -82,6 +84,26 @@ class ShotActivity : BaseActivity() {
                 setMargins(0, 0, 0, dp(12))
             })
             addView(image, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 3f))
+            // Ekrandaki bulunan öğeler (telefon, IBAN, tarih, takip no, link, adres): dokununca işlem yapılır.
+            val found = f?.let { Entities.find(Info.readOcr(it)) }.orEmpty()
+            if (found.isNotEmpty()) addView(HorizontalScrollView(this@ShotActivity).apply {
+                isHorizontalScrollBarEnabled = false
+                addView(LinearLayout(this@ShotActivity).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    found.forEach { e ->
+                        addView(Ui.text(this@ShotActivity, e.chip, 10f, Ui.WHITE, bold = true).apply {
+                            letterSpacing = 0.1f
+                            gravity = Gravity.CENTER
+                            setPadding(dp(14), dp(10), dp(14), dp(10))
+                            background = Ui.rounded(this@ShotActivity, Color.TRANSPARENT, 20f, Ui.LINE)
+                            Ui.pressAnim(this)
+                            setOnClickListener { Entities.act(this@ShotActivity, e) }
+                        }, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT).apply { setMargins(0, 0, dp(8), 0) })
+                    }
+                })
+            }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                setMargins(0, dp(12), 0, 0)
+            })
             addView(editor, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f).apply {
                 setMargins(0, dp(14), 0, 0)
             })
