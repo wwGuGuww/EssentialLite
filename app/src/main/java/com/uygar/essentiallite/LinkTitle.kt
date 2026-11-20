@@ -19,7 +19,7 @@ object LinkTitle {
                 readTimeout = 6_000
                 instanceFollowRedirects = true
                 setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 15) EssentialLite")
-                setRequestProperty("Accept-Language", "tr,en;q=0.8")
+                setRequestProperty("Accept-Language", "en,tr;q=0.8")
             }
             try {
                 val bytes = conn.inputStream.use { it.readNBytes(96 * 1024) }

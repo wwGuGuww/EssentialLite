@@ -30,11 +30,11 @@ class ShotActivity : BaseActivity() {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             addView(Ui.text(this@ShotActivity, "‹", 18f).apply {
-                contentDescription = "Geri"
+                contentDescription = "Back"
                 setPadding(0, 0, dp(14), 0)
                 setOnClickListener { finish() }
             })
-            addView(Ui.kindLabel(this@ShotActivity, "EKRAN"), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+            addView(Ui.kindLabel(this@ShotActivity, "SCREEN"), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
             addView(Ui.text(this@ShotActivity, f?.let { it.nameWithoutExtension.toLongOrNull()?.let { t -> Store.stamp(t) } } ?: "", 10f, Ui.GREY))
         }
 
@@ -49,7 +49,7 @@ class ShotActivity : BaseActivity() {
         val editor = EditText(this).apply {
             setTextColor(Ui.WHITE)
             setHintTextColor(Ui.DIM)
-            hint = "Bu ekran görüntüsüne not..."
+            hint = "A note for this screenshot..."
             typeface = Typeface.MONOSPACE
             textSize = 14f
             gravity = Gravity.TOP
@@ -58,14 +58,14 @@ class ShotActivity : BaseActivity() {
             f?.let { setText(Store.noteOf(it)) }
         }
 
-        val save = Ui.pill(this, "KAYDET") { save(editor.text.toString()) }
+        val save = Ui.pill(this, "SAVE") { save(editor.text.toString()) }
         val footer = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             setPadding(0, dp(16), 0, 0)
             addView(View(this@ShotActivity),
                 LinearLayout.LayoutParams(0, 1, 1f))
-            addView(Ui.text(this@ShotActivity, "DÜZENLE", 10f, Ui.WHITE, bold = true).apply {
+            addView(Ui.text(this@ShotActivity, "EDIT", 10f, Ui.WHITE, bold = true).apply {
                 letterSpacing = 0.14f
                 setPadding(0, 0, dp(20), 0)
                 setOnClickListener {
@@ -115,7 +115,7 @@ class ShotActivity : BaseActivity() {
     private fun save(body: String) {
         val f = file ?: return finish()
         Store.saveNote(f, body)
-        Store.toast(this, if (body.isBlank()) "NOT SİLİNDİ" else "NOT KAYDEDİLDİ")
+        Store.toast(this, if (body.isBlank()) "NOTE DELETED" else "NOTE SAVED")
         val app = applicationContext
         Thread { CaptureWidget.refreshAll(app) }.start()
         finish()

@@ -10,7 +10,7 @@ class QuickShotActivity : Activity() {
         val app = applicationContext
         Thread {
             Thread.sleep(450) // kısayol menüsü ve bu ekran kapansın
-            val msg = try { Shot.take(app) } catch (e: Throwable) { "EKRAN ALINAMADI" }
+            val msg = try { Shot.take(app) } catch (e: Throwable) { "COULDN'T CAPTURE SCREEN" }
             Store.toast(app, msg)
         }.start()
         finish()

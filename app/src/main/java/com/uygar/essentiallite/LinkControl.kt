@@ -82,10 +82,10 @@ object LinkControl {
     /** PC'den gelen dokunma, tuş ve yazı iletileri. */
     fun input(ctx: Context, m: JSONObject) {
         val why = when {
-            !active -> "TELEFONDA KONTROL OTURUMU KAPALI"
-            watchOnly -> "SADECE İZLEME AÇIK · TELEFONDA \"KONTROLE İZİN VER\"E BAS"
-            !Link.feature(ctx, "c_touch", true) -> "TELEFONDA \"DOKUNMA VE YAZMA\" KAPALI"
-            KeyComboService.instance == null -> "TELEFONDA ERİŞİLEBİLİRLİK HİZMETİ KAPALI"
+            !active -> "CONTROL SESSION IS OFF ON THE PHONE"
+            watchOnly -> "VIEW ONLY · TAP \"ALLOW CONTROL\" ON THE PHONE"
+            !Link.feature(ctx, "c_touch", true) -> "\"TOUCH AND TYPE\" IS OFF ON THE PHONE"
+            KeyComboService.instance == null -> "ACCESSIBILITY SERVICE IS OFF ON THE PHONE"
             else -> null
         }
         if (why != null) { Link.send("t" to "deny", "why" to why); return }
@@ -128,7 +128,7 @@ class LinkCaptureService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         LinkService.channel(this)
         val n = Notification.Builder(this, "link").setSmallIcon(android.R.drawable.stat_notify_sync)
-            .setContentTitle("EKRAN PC'YE AKIYOR").setContentText("Oturumu bitirmek için uygulamayı aç").setOngoing(true).build()
+            .setContentTitle("SCREEN STREAMING TO PC").setContentText("Open the app to end the session").setOngoing(true).build()
         if (Build.VERSION.SDK_INT >= 29) startForeground(7302, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION)
         else startForeground(7302, n)
         inst = this

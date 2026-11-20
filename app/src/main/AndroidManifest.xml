@@ -63,7 +63,7 @@
         <service
             android:name=".KeyComboService"
             android:exported="false"
-            android:label="Essential Lite hızlı erişim"
+            android:label="Essential Lite quick access"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
             <intent-filter>
                 <action android:name="android.accessibilityservice.AccessibilityService" />
@@ -145,10 +145,10 @@
         <activity android:name=".LinkSendActivity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".LinkControlActivity" android:exported="false" android:screenOrientation="portrait" />
         <service android:name=".LinkService" android:exported="false" android:foregroundServiceType="specialUse">
-            <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="Yerel ağda PC ile şifreli bağlantı" />
+            <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="Encrypted connection to a PC on the local network" />
         </service>
         <service android:name=".LinkCaptureService" android:exported="false" android:foregroundServiceType="mediaProjection" />
-        <service android:name=".LinkNotif" android:exported="true" android:label="Essential Lite bildirim aktarımı"
+        <service android:name=".LinkNotif" android:exported="true" android:label="Essential Lite notification relay"
             android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
             <intent-filter>
                 <action android:name="android.service.notification.NotificationListenerService" />

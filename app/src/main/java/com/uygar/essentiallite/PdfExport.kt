@@ -22,7 +22,7 @@ object PdfExport {
     private const val M = 48
 
     fun write(ctx: Context, items: List<Entry>): File {
-        val out = File(File(ctx.cacheDir, "share").apply { mkdirs() }, "kayitlar.pdf")
+        val out = File(File(ctx.cacheDir, "share").apply { mkdirs() }, "records.pdf")
         val doc = PdfDocument()
         items.forEachIndexed { i, e ->
             val page = doc.startPage(PdfDocument.PageInfo.Builder(W, H, i + 1).create())
@@ -49,7 +49,7 @@ object PdfExport {
             y = drawText(c, e.title, title, M.toFloat(), y, (W - 2 * M).toFloat()) + 10f
         }
 
-        if (e.kind == "EKRAN" || e.kind == "GÖRSEL") {
+        if (e.kind == "SCREEN" || e.kind == "IMAGE") {
             val bmp = decode(e.file, 1400)
             if (bmp != null) {
                 val maxW = (W - 2 * M).toFloat()

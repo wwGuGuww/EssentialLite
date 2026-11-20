@@ -1,5 +1,5 @@
-// Essential Lite · PC tarafı. Telefondan gelen şifreli bağlantıyı karşılar, tarayıcıda arayüzü gösterir.
-// Çalıştırmak için: node essential-link.js   (ek paket gerekmez)
+// Essential Lite · PC side. Accepts the encrypted connection from the phone and shows the interface in the browser.
+// Run with: node essential-link.js   (no extra packages needed)
 'use strict';
 const net = require('net');
 const http = require('http');
@@ -17,12 +17,12 @@ const STORE = path.join(os.homedir(), '.essential-link.json');
 const DOWNLOADS = path.join(os.homedir(), 'Downloads');
 const PC_NAME = (os.hostname() || 'PC').toUpperCase();
 
-// ---------- Kalıcı eşleşmeler ----------
+// ---------- Saved pairings ----------
 let store = { phones: [] };
-try { store = JSON.parse(fs.readFileSync(STORE, 'utf8')); } catch (e) { /* ilk çalıştırma */ }
+try { store = JSON.parse(fs.readFileSync(STORE, 'utf8')); } catch (e) { /* first run */ }
 const saveStore = () => fs.writeFileSync(STORE, JSON.stringify(store));
 
-// ---------- Yardımcılar ----------
+// ---------- Helpers ----------
 const b64u = (b) => b.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 const fromB64u = (s) => Buffer.from(s.replace(/-/g, '+').replace(/_/g, '/'), 'base64');
 const confirmCode = (key) => {
@@ -39,7 +39,7 @@ function lanIp() {
   return best || '127.0.0.1';
 }
 
-// ---------- Eşleştirme anahtarı (60 sn'de bir yenilenir) ----------
+// ---------- Pairing key (refreshed every 60 s) ----------
 let cycle = 0, pairKey = crypto.randomBytes(32), prevKey = null, cycleAt = Date.now();
 function rotate() {
   prevKey = pairKey; pairKey = crypto.randomBytes(32); cycle++; cycleAt = Date.now();
@@ -51,7 +51,7 @@ function qrInfo() {
   return { url, rows: qr.encode(url), left: Math.max(0, Math.ceil((cycleAt + CYCLE_MS - Date.now()) / 1000)), sid: 'EL-' + (4829 + cycle * 7) };
 }
 
-// ---------- Tarayıcı (SSE) ----------
+// ---------- Browser (SSE) ----------
 const sse = new Set();
 function broadcast(obj) {
   const line = 'data: ' + JSON.stringify(obj) + '\n\n';
@@ -99,7 +99,7 @@ function onFrame(s, body) {
     if (prevKey) candidates.push({ k: prevKey, pair: true });
     for (const p of store.phones) candidates.push({ k: fromB64u(p.key), pair: false });
     for (const c of candidates) {
-      try { msg = decrypt(c.k, body); s.key = c.k; s.pairing = c.pair; break; } catch (e) { /* sıradaki */ }
+      try { msg = decrypt(c.k, body); s.key = c.k; s.pairing = c.pair; break; } catch (e) { /* next */ }
     }
     if (!msg) { s.sock.destroy(); return; }
     if (session && session !== s) { try { session.sock.destroy(); } catch (e) { /* */ } }
@@ -120,7 +120,7 @@ function handle(s, m) {
       if (s.paired) send({ t: 'ok' });
       broadcast(state());
       break;
-    case 'ok': // telefonda onaylandı
+    case 'ok': // confirmed on the phone
       if (s.pairing && !s.paired) {
         s.paired = true;
         store.phones = store.phones.filter((p) => p.key !== b64u(s.key));
@@ -207,7 +207,7 @@ tcp.listen(TCP_PORT, '0.0.0.0');
 
 setInterval(() => { if (session && session.key && session.paired) send({ t: 'ping', ts: Date.now() }); }, 2500);
 
-// ---------- Tarayıcı sunucusu (yalnızca bu PC) ----------
+// ---------- Browser server (this PC only) ----------
 const PAGE = path.join(__dirname, 'page.html');
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, 'http://localhost');
@@ -256,7 +256,7 @@ function api(act, j) {
 }
 
 function upload(url, raw, res) {
-  if (!session || !session.paired) { res.writeHead(409); return res.end('bağlı değil'); }
+  if (!session || !session.paired) { res.writeHead(409); return res.end('not connected'); }
   const name = url.searchParams.get('name') || 'dosya';
   const id = crypto.randomBytes(4).toString('hex');
   send({ t: 'fstart', id, name, size: raw.length });
@@ -269,14 +269,14 @@ function upload(url, raw, res) {
 
 server.listen(HTTP_PORT, '127.0.0.1', () => {
   const url = 'http://localhost:' + HTTP_PORT;
-  console.log('\n  ESSENTIAL ● LITE · PC\n  Tarayıcıda aç: ' + url + '\n  Telefon bu ağda (' + lanIp() + ') olmalı.\n');
+  console.log('\n  ESSENTIAL ● LITE · PC\n  Open in browser: ' + url + '\n  The phone must be on this network (' + lanIp() + ').\n');
   if (!process.argv.includes('--no-open')) execFile('cmd', ['/c', 'start', '', url], () => {});
 });
 
-// Port zaten kullanımdaysa (uygulama zaten açık) çökmek yerine sadece sayfayı aç.
+// If the port is already in use (app already open), just open the page instead of crashing.
 const busy = (e) => {
   if (e.code === 'EADDRINUSE') {
-    console.log('\n  Essential Lite zaten çalışıyor. Sayfa açılıyor: http://localhost:' + HTTP_PORT + '\n');
+    console.log('\n  Essential Lite is already running. Opening the page: http://localhost:' + HTTP_PORT + '\n');
     execFile('cmd', ['/c', 'start', '', 'http://localhost:' + HTTP_PORT], () => process.exit(0));
   } else { console.error(e); }
 };

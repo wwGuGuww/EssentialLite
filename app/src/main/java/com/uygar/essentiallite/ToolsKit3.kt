@@ -87,7 +87,7 @@ private fun circleBtn(ctx: Context, label: String, sizeDp: Int, border: Int, onC
 
 /** Ortadaki büyük başlat/duraklat düğmesi: 104 dp, nokta matrisi ikon. */
 private fun mainBtn(ctx: Context, running: Boolean, onClick: () -> Unit): FrameLayout = FrameLayout(ctx).apply {
-    contentDescription = if (running) "Duraklat" else "Başlat"
+    contentDescription = if (running) "Pause" else "Start"
     background = GradientRound(ctx, if (running) Ui.RED else Ui.WHITE)
     addView(
         DotIcon(ctx, if (running) ToolUi.ICON_PAUSE else Ui.ICON_PLAY, if (running) Ui.RED else Ui.WHITE, 70),
@@ -288,7 +288,7 @@ class MetronomeActivity : BaseActivity() {
             addView(View(this@MetronomeActivity), LinearLayout.LayoutParams(1, 0, 1f))
             addView(controls, LinearLayout.LayoutParams(MATCH, WRAP).apply { setMargins(dp(4), dp(18), dp(4), 0) })
         }
-        right = ToolUi.screen(this, "METRONOM", "", ScrollView(this).apply {
+        right = ToolUi.screen(this, "METRONOME", "", ScrollView(this).apply {
             isFillViewport = true
             isVerticalScrollBarEnabled = false
             addView(body)
@@ -323,7 +323,7 @@ class MetronomeActivity : BaseActivity() {
 
     private fun renderControls() {
         fun dp(v: Int) = ToolUi.dp(this, v)
-        soundBtn.text = dotLabel(if (sound) "AÇIK" else "KAPALI", true)
+        soundBtn.text = dotLabel(if (sound) "ON" else "OFF", true)
         soundBtn.setTextColor(if (sound) Ui.WHITE else Ui.GREY)
         controls.removeAllViews()
         controls.addView(circleBtn(this, "TAP", 88, Ui.LINE) { tap() }, LinearLayout.LayoutParams(dp(88), dp(88)))
@@ -333,7 +333,7 @@ class MetronomeActivity : BaseActivity() {
         controls.addView(LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.END
-            addView(Ui.text(this@MetronomeActivity, "SES", 10f, Ui.GREY).apply { letterSpacing = 0.14f })
+            addView(Ui.text(this@MetronomeActivity, "SOUND", 10f, Ui.GREY).apply { letterSpacing = 0.14f })
             (soundBtn.parent as? ViewGroup)?.removeView(soundBtn)
             addView(soundBtn, LinearLayout.LayoutParams(WRAP, dp(44)))
         }, LinearLayout.LayoutParams(dp(88), WRAP))
@@ -405,9 +405,9 @@ object TimerAlarm {
 
 class TimerReceiver : BroadcastReceiver() {
     override fun onReceive(ctx: Context, intent: Intent) {
-        val label = intent.getStringExtra("label") ?: "SAYAÇ BİTTİ"
+        val label = intent.getStringExtra("label") ?: "TIMER DONE"
         val nm = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        if (Build.VERSION.SDK_INT >= 26) nm.createNotificationChannel(NotificationChannel(TimerAlarm.CHANNEL, "Sayaç", NotificationManager.IMPORTANCE_HIGH))
+        if (Build.VERSION.SDK_INT >= 26) nm.createNotificationChannel(NotificationChannel(TimerAlarm.CHANNEL, "Timer", NotificationManager.IMPORTANCE_HIGH))
         val b = if (Build.VERSION.SDK_INT >= 26) Notification.Builder(ctx, TimerAlarm.CHANNEL) else @Suppress("DEPRECATION") Notification.Builder(ctx)
         runCatching {
             nm.notify(
@@ -503,7 +503,7 @@ class TimerActivity : BaseActivity() {
             addView(View(this@TimerActivity), LinearLayout.LayoutParams(1, 0, 1f))
             addView(controls, LinearLayout.LayoutParams(MATCH, WRAP).apply { setMargins(dp(4), dp(18), dp(4), 0) })
         }
-        stateView = ToolUi.screen(this, "SAYAÇ", "HAZIR", ScrollView(this).apply {
+        stateView = ToolUi.screen(this, "TIMER", "READY", ScrollView(this).apply {
             isFillViewport = true
             isVerticalScrollBarEnabled = false
             addView(body)
@@ -534,7 +534,7 @@ class TimerActivity : BaseActivity() {
         render()
     }
 
-    private fun alarmLabel() = if (mode == 1) (if (onBreak) "MOLA BİTTİ" else "ODAK BİTTİ") else "SAYAÇ BİTTİ"
+    private fun alarmLabel() = if (mode == 1) (if (onBreak) "BREAK OVER" else "FOCUS DONE") else "TIMER DONE"
 
     private fun reset() {
         running = false; restMs = -1; onBreak = false
@@ -588,14 +588,14 @@ class TimerActivity : BaseActivity() {
         ring.accent = if (mode == 1 && onBreak) Ui.WHITE else Ui.RED
         ring.invalidate()
         timeView.text = ToolUi.p2((l / 60).toLong()) + ":" + ToolUi.p2((l % 60).toLong())
-        stateView.text = if (running) "ÇALIŞIYOR" else if (l == 0) "BİTTİ" else "HAZIR"
+        stateView.text = if (running) "RUNNING" else if (l == 0) "DONE" else "READY"
     }
 
     private fun render() {
         fun dp(v: Int) = ToolUi.dp(this, v)
-        phaseView.text = if (mode == 1) (if (onBreak) "MOLA" else "ODAK") else "GERİ SAYIM"
+        phaseView.text = if (mode == 1) (if (onBreak) "BREAK" else "FOCUS") else "COUNTDOWN"
         modeRow.removeAllViews()
-        listOf("SAYAÇ" to 0, "ODAK 25/5" to 1).forEachIndexed { i, (l, m) ->
+        listOf("TIMER" to 0, "FOCUS 25/5" to 1).forEachIndexed { i, (l, m) ->
             modeRow.addView(choice(this, l, mode == m, true, 11f) { setMode(m) },
                 LinearLayout.LayoutParams(0, dp(44), 1f).apply { setMargins(if (i == 0) 0 else dp(4), 0, if (i == 1) 0 else dp(4), 0) })
         }
@@ -606,21 +606,21 @@ class TimerActivity : BaseActivity() {
                 background = Ui.rounded(this@TimerActivity, if (i < rounds) Ui.RED else Color.TRANSPARENT, 5f, if (i < rounds) Ui.RED else Ui.LINE)
             }, LinearLayout.LayoutParams(dp(10), dp(10)).apply { setMargins(dp(5), 0, dp(5), 0) })
         }
-        roundsRow.addView(Ui.text(this, "$rounds / 4 TUR", 10f, Ui.GREY).apply { letterSpacing = 0.16f; setPadding(dp(6), 0, 0, 0) })
+        roundsRow.addView(Ui.text(this, "$rounds / 4 ROUNDS", 10f, Ui.GREY).apply { letterSpacing = 0.16f; setPadding(dp(6), 0, 0, 0) })
         presetRow.visibility = if (mode == 0) View.VISIBLE else View.GONE
         presetRow.removeAllViews()
         val pre = listOf(1, 5, 10, 30)
         pre.forEachIndexed { i, m ->
-            presetRow.addView(choice(this, "$m DK", total == m * 60, false, 11f) {
+            presetRow.addView(choice(this, "$m MIN", total == m * 60, false, 11f) {
                 total = m * 60; restMs = -1; running = false; TimerAlarm.cancel(this); render()
             }, LinearLayout.LayoutParams(0, dp(44), 1f).apply { setMargins(if (i == 0) 0 else dp(3), 0, if (i == pre.size - 1) 0 else dp(3), 0) })
         }
         controls.removeAllViews()
-        controls.addView(circleBtn(this, "SIFIRLA", 88, Ui.LINE) { reset() }, LinearLayout.LayoutParams(dp(88), dp(88)))
+        controls.addView(circleBtn(this, "RESET", 88, Ui.LINE) { reset() }, LinearLayout.LayoutParams(dp(88), dp(88)))
         controls.addView(View(this), LinearLayout.LayoutParams(0, 1, 1f))
         controls.addView(mainBtn(this, running) { toggle() }, LinearLayout.LayoutParams(dp(104), dp(104)))
         controls.addView(View(this), LinearLayout.LayoutParams(0, 1, 1f))
-        controls.addView(circleBtn(this, if (mode == 1) "ATLA" else "+1 DK", 88, Ui.LINE) { skip() }, LinearLayout.LayoutParams(dp(88), dp(88)))
+        controls.addView(circleBtn(this, if (mode == 1) "SKIP" else "+1 MIN", 88, Ui.LINE) { skip() }, LinearLayout.LayoutParams(dp(88), dp(88)))
         refresh()
     }
 
@@ -676,7 +676,7 @@ class CalcAdvActivity : BaseActivity() {
         area = FrameLayout(this)
         val nav = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
-            listOf("BİLİM", "KDV", "KREDİ", "BİRİM").forEachIndexed { i, l ->
+            listOf("SCIENCE", "VAT", "LOAN", "UNIT").forEachIndexed { i, l ->
                 addView(choice(this@CalcAdvActivity, l, mode == i, true, 10.5f) { mode = i; build() },
                     LinearLayout.LayoutParams(0, dp(44), 1f).apply { setMargins(if (i == 0) 0 else dp(3), 0, if (i == 3) 0 else dp(3), 0) })
             }
@@ -687,7 +687,7 @@ class CalcAdvActivity : BaseActivity() {
             addView(nav, LinearLayout.LayoutParams(MATCH, dp(44)))
             addView(area, LinearLayout.LayoutParams(MATCH, 0, 1f).apply { setMargins(0, dp(14), 0, 0) })
         }
-        val right = ToolUi.screen(this, "GELİŞMİŞ", "← BASİT", body)
+        val right = ToolUi.screen(this, "ADVANCED", "← BASIC", body)
         right.apply {
             setTextColor(Ui.WHITE)
             textSize = 11f
@@ -696,7 +696,7 @@ class CalcAdvActivity : BaseActivity() {
             background = Ui.rounded(this@CalcAdvActivity, Color.TRANSPARENT, 22f, Ui.LINE)
             setPadding(dp(18), 0, dp(18), 0)
             minHeight = dp(44)
-            text = SpannableStringBuilder("← BASİT").also { it.setSpan(ForegroundColorSpan(Ui.RED), 0, 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE) }
+            text = SpannableStringBuilder("← BASIC").also { it.setSpan(ForegroundColorSpan(Ui.RED), 0, 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE) }
             setOnClickListener { finish() }
         }
         build()
@@ -707,7 +707,7 @@ class CalcAdvActivity : BaseActivity() {
     private fun build() {
         fun dp(v: Int) = ToolUi.dp(this, v)
         navRow.removeAllViews()
-        listOf("BİLİM", "KDV", "KREDİ", "BİRİM").forEachIndexed { i, l ->
+        listOf("SCIENCE", "VAT", "LOAN", "UNIT").forEachIndexed { i, l ->
             navRow.addView(choice(this, l, mode == i, true, 10.5f) { mode = i; build() },
                 LinearLayout.LayoutParams(0, dp(44), 1f).apply { setMargins(if (i == 0) 0 else dp(3), 0, if (i == 3) 0 else dp(3), 0) })
         }
@@ -719,24 +719,24 @@ class CalcAdvActivity : BaseActivity() {
     }
 
     // --- ortak ---
-    private fun num(s: String): Double = if (s == "HATA" || s.isBlank()) 0.0 else s.replace(',', '.').toDoubleOrNull() ?: 0.0
+    private fun num(s: String): Double = if (s == "ERROR" || s.isBlank()) 0.0 else s.replace(',', '.').toDoubleOrNull() ?: 0.0
 
     private fun toStr(n: Double, d: Int = 9): String {
-        if (!n.isFinite()) return "HATA"
+        if (!n.isFinite()) return "ERROR"
         val k = 10.0.pow(d)
         val r = Math.rint(n * k) / k
-        return BigDecimal.valueOf(r).stripTrailingZeros().toPlainString().replace('.', ',')
+        return BigDecimal.valueOf(r).stripTrailingZeros().toPlainString()
     }
 
     private fun group(s: String): String {
-        if (s == "HATA") return s
-        val p = s.split(',')
+        if (s == "ERROR") return s
+        val p = s.split('.')
         val neg = p[0].startsWith("-")
-        val d = p[0].removePrefix("-").replace(Regex("\\B(?=(\\d{3})+(?!\\d))"), ".")
-        return (if (neg) "-" else "") + d + (if (p.size > 1) "," + p[1] else "")
+        val d = p[0].removePrefix("-").replace(Regex("\\B(?=(\\d{3})+(?!\\d))"), ",")
+        return (if (neg) "-" else "") + d + (if (p.size > 1) "." + p[1] else "")
     }
 
-    private fun fix2(n: Double) = group(String.format(Locale.US, "%.2f", n).replace('.', ','))
+    private fun fix2(n: Double) = group(String.format(Locale.US, "%.2f", n))
 
     private fun label(t: String) = Ui.text(this, t, 10f, Ui.GREY).apply { letterSpacing = 0.16f }
 
@@ -754,7 +754,7 @@ class CalcAdvActivity : BaseActivity() {
 
     /** 3 sütunlu sayı tuşları: 1-9, virgül, 0, sil. */
     private fun pad(): LinearLayout {
-        val keys = listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", ",", "0", "⌫")
+        val keys = listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", ".", "0", "⌫")
         return LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             for (r in 0 until 4) {
@@ -775,9 +775,9 @@ class CalcAdvActivity : BaseActivity() {
     private fun valueKey(l: String) {
         if (l == "⌫") value = if (value.length <= 1) "0" else value.dropLast(1)
         else {
-            if (l == "," && value.contains(',')) return
-            if (value.replace(",", "").length >= 10) return
-            value = if (value == "0" && l != ",") l else value + l
+            if (l == "." && value.contains('.')) return
+            if (value.replace(".", "").length >= 10) return
+            value = if (value == "0" && l != ".") l else value + l
         }
         build()
     }
@@ -796,16 +796,16 @@ class CalcAdvActivity : BaseActivity() {
         fun dp(v: Int) = ToolUi.dp(this, v)
         val shown = group(cur)
         fun put(ch: String) {
-            if (cur == "HATA" || fresh) { cur = if (ch == ",") "0," else ch; fresh = false }
+            if (cur == "ERROR" || fresh) { cur = if (ch == ".") "0." else ch; fresh = false }
             else {
-                if (ch == "," && cur.contains(',')) return
-                if (cur.replace(",", "").replace("-", "").length >= 12) return
-                cur = if (cur == "0" && ch != ",") ch else cur + ch
+                if (ch == "." && cur.contains('.')) return
+                if (cur.replace(".", "").replace("-", "").length >= 12) return
+                cur = if (cur == "0" && ch != ".") ch else cur + ch
             }
             build()
         }
         fun pick(o: Char) {
-            if (cur == "HATA") return
+            if (cur == "ERROR") return
             val a = acc
             val p = op
             if (p != null && !fresh && a != null) {
@@ -816,7 +816,7 @@ class CalcAdvActivity : BaseActivity() {
         fun equals() {
             val a = acc ?: return
             val p = op ?: return
-            if (cur == "HATA") return
+            if (cur == "ERROR") return
             val r = calc(a, p, num(cur))
             expr = toStr(a) + " " + sym[p] + " " + cur + " ="
             cur = toStr(r); acc = null; op = null; fresh = true
@@ -824,12 +824,12 @@ class CalcAdvActivity : BaseActivity() {
         }
         fun clear() { cur = "0"; acc = null; op = null; fresh = false; expr = ""; build() }
         fun back() {
-            if (fresh || cur == "HATA") { clear(); return }
+            if (fresh || cur == "ERROR") { clear(); return }
             cur = if (cur.length <= 1 || (cur.length == 2 && cur[0] == '-')) "0" else cur.dropLast(1)
             build()
         }
         fun un(name: String, f: (Double) -> Double) {
-            if (cur == "HATA") return
+            if (cur == "ERROR") return
             val r = f(num(cur)); expr = "$name($cur)"; cur = toStr(r); fresh = true; build()
         }
         fun rad(x: Double) = if (deg) Math.toRadians(x) else x
@@ -842,8 +842,8 @@ class CalcAdvActivity : BaseActivity() {
             K("7", "n", { put("7") }), K("8", "n", { put("8") }), K("9", "n", { put("9") }), K(sym['/']!!, "op", { pick('/') }, '/'), K("AC", "fn", { clear() }),
             K("4", "n", { put("4") }), K("5", "n", { put("5") }), K("6", "n", { put("6") }), K(sym['*']!!, "op", { pick('*') }, '*'), K("⌫", "fn", { back() }),
             K("1", "n", { put("1") }), K("2", "n", { put("2") }), K("3", "n", { put("3") }), K(sym['-']!!, "op", { pick('-') }, '-'),
-            K("±", "fn", { if (cur != "0" && cur != "HATA") { cur = if (cur[0] == '-') cur.drop(1) else "-$cur"; build() } }),
-            K("0", "n", { put("0") }), K(",", "n", { put(",") }),
+            K("±", "fn", { if (cur != "0" && cur != "ERROR") { cur = if (cur[0] == '-') cur.drop(1) else "-$cur"; build() } }),
+            K("0", "n", { put("0") }), K(".", "n", { put(".") }),
             K("n!", "fn", { un("fakt") { x -> if (x < 0 || x > 20 || x != Math.floor(x)) Double.NaN else (2..x.toInt()).fold(1.0) { a, b -> a * b } } }),
             K(sym['+']!!, "op", { pick('+') }, '+'), K("=", "eq", { equals() })
         )
@@ -864,7 +864,7 @@ class CalcAdvActivity : BaseActivity() {
             }
         }
         val degBtn = Ui.text(this, "", 11f, Ui.WHITE, bold = true).apply {
-            text = SpannableStringBuilder("● " + (if (deg) "DERECE" else "RADYAN")).also { it.setSpan(ForegroundColorSpan(Ui.RED), 0, 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE) }
+            text = SpannableStringBuilder("● " + (if (deg) "DEGREES" else "RADIANS")).also { it.setSpan(ForegroundColorSpan(Ui.RED), 0, 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE) }
             letterSpacing = 0.14f
             gravity = Gravity.CENTER
             setPadding(dp(16), 0, dp(16), 0)
@@ -906,7 +906,7 @@ class CalcAdvActivity : BaseActivity() {
             }
         }
         val dir = Ui.text(this, "", 11f, Ui.WHITE, bold = true).apply {
-            text = SpannableStringBuilder("● " + (if (incl) "KDV DAHİL → HARİÇ" else "KDV HARİÇ → DAHİL")).also { it.setSpan(ForegroundColorSpan(Ui.RED), 0, 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE) }
+            text = SpannableStringBuilder("● " + (if (incl) "VAT INCLUDED → EXCLUDED" else "VAT EXCLUDED → INCLUDED")).also { it.setSpan(ForegroundColorSpan(Ui.RED), 0, 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE) }
             letterSpacing = 0.14f
             gravity = Gravity.CENTER
             background = Ui.rounded(this@CalcAdvActivity, Color.TRANSPARENT, 22f, Ui.LINE)
@@ -914,7 +914,7 @@ class CalcAdvActivity : BaseActivity() {
         }
         val outs = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
-            listOf(Triple("MATRAH", fix2(base), Ui.WHITE), Triple("KDV %$rate", fix2(vatAmt), Ui.RED), Triple("TOPLAM", fix2(total), Ui.WHITE)).forEachIndexed { i, (l, t, c) ->
+            listOf(Triple("NET AMOUNT", fix2(base), Ui.WHITE), Triple("VAT $rate%", fix2(vatAmt), Ui.RED), Triple("TOTAL", fix2(total), Ui.WHITE)).forEachIndexed { i, (l, t, c) ->
                 addView(LinearLayout(this@CalcAdvActivity).apply {
                     orientation = LinearLayout.VERTICAL
                     addView(Ui.text(this@CalcAdvActivity, l, 10f, Ui.GREY).apply { letterSpacing = 0.14f })
@@ -929,7 +929,7 @@ class CalcAdvActivity : BaseActivity() {
             addView(LinearLayout(this@CalcAdvActivity).apply {
                 orientation = LinearLayout.VERTICAL
                 setPadding(dp(4), dp(6), dp(4), 0)
-                addView(label("TUTAR · TL"))
+                addView(label("AMOUNT"))
                 addView(big(group(value), 40f), LinearLayout.LayoutParams(WRAP, WRAP).apply { setMargins(0, dp(4), 0, 0) })
             }, LinearLayout.LayoutParams(MATCH, WRAP).apply { setMargins(0, dp(12), 0, 0) })
             addView(View(this@CalcAdvActivity).apply { setBackgroundColor(Ui.BORDER) }, LinearLayout.LayoutParams(MATCH, dp(1)).apply { setMargins(0, dp(12), 0, dp(12)) })
@@ -959,9 +959,9 @@ class CalcAdvActivity : BaseActivity() {
         }
         data class S(val l: String, val v: String, val dn: () -> Unit, val up: () -> Unit)
         val steppers = listOf(
-            S("KREDİ TUTARI · TL", group(loanP.toLong().toString()), { step('P', -10000.0, 10000.0, 2000000.0) }, { step('P', 10000.0, 10000.0, 2000000.0) }),
-            S("AYLIK FAİZ · %", toStr(loanR, 2), { step('R', -0.1, 0.0, 10.0) }, { step('R', 0.1, 0.0, 10.0) }),
-            S("VADE · AY", loanN.toString(), { step('N', -3.0, 3.0, 120.0) }, { step('N', 3.0, 3.0, 120.0) })
+            S("LOAN AMOUNT", group(loanP.toLong().toString()), { step('P', -10000.0, 10000.0, 2000000.0) }, { step('P', 10000.0, 10000.0, 2000000.0) }),
+            S("MONTHLY INTEREST · %", toStr(loanR, 2), { step('R', -0.1, 0.0, 10.0) }, { step('R', 0.1, 0.0, 10.0) }),
+            S("TERM · MONTHS", loanN.toString(), { step('N', -3.0, 3.0, 120.0) }, { step('N', 3.0, 3.0, 120.0) })
         )
         fun stepBtn(t: String, act: () -> Unit) = Ui.text(this, t, 18f, Ui.WHITE).apply {
             gravity = Gravity.CENTER
@@ -993,23 +993,23 @@ class CalcAdvActivity : BaseActivity() {
             addView(LinearLayout(this@CalcAdvActivity).apply {
                 orientation = LinearLayout.VERTICAL
                 setPadding(dp(4), dp(4), dp(4), 0)
-                addView(label("AYLIK TAKSİT · TL"))
+                addView(label("MONTHLY PAYMENT"))
                 addView(big(group(Math.round(pmt).toString()), 56f), LinearLayout.LayoutParams(WRAP, WRAP).apply { setMargins(0, dp(6), 0, 0) })
             }, LinearLayout.LayoutParams(MATCH, WRAP))
             addView(dots, LinearLayout.LayoutParams(MATCH, dp(5)).apply { setMargins(dp(4), dp(14), dp(4), 0) })
             addView(LinearLayout(this@CalcAdvActivity).apply {
                 orientation = LinearLayout.HORIZONTAL
                 setPadding(dp(4), 0, dp(4), 0)
-                addView(Ui.text(this@CalcAdvActivity, "● ANAPARA ${group(loanP.toLong().toString())}", 10f, Ui.GREY).apply { letterSpacing = 0.12f }, LinearLayout.LayoutParams(0, WRAP, 1f))
-                addView(Ui.text(this@CalcAdvActivity, "● FAİZ ${group(Math.round(interest).toString())}", 10f, Ui.RED).apply { letterSpacing = 0.12f })
+                addView(Ui.text(this@CalcAdvActivity, "● PRINCIPAL ${group(loanP.toLong().toString())}", 10f, Ui.GREY).apply { letterSpacing = 0.12f }, LinearLayout.LayoutParams(0, WRAP, 1f))
+                addView(Ui.text(this@CalcAdvActivity, "● INTEREST ${group(Math.round(interest).toString())}", 10f, Ui.RED).apply { letterSpacing = 0.12f })
             }, LinearLayout.LayoutParams(MATCH, WRAP).apply { setMargins(0, dp(14), 0, 0) })
             addView(list, LinearLayout.LayoutParams(MATCH, WRAP).apply { setMargins(0, dp(14), 0, 0) })
             addView(LinearLayout(this@CalcAdvActivity).apply {
                 orientation = LinearLayout.HORIZONTAL
-                addView(Ui.text(this@CalcAdvActivity, "TOPLAM ÖDEME", 11f, Ui.GREY).apply { letterSpacing = 0.1f }, LinearLayout.LayoutParams(0, WRAP, 1f))
-                addView(Ui.text(this@CalcAdvActivity, group(Math.round(paid).toString()) + " TL", 11f, Ui.WHITE).apply { letterSpacing = 0.1f })
+                addView(Ui.text(this@CalcAdvActivity, "TOTAL PAYMENT", 11f, Ui.GREY).apply { letterSpacing = 0.1f }, LinearLayout.LayoutParams(0, WRAP, 1f))
+                addView(Ui.text(this@CalcAdvActivity, group(Math.round(paid).toString()) + "", 11f, Ui.WHITE).apply { letterSpacing = 0.1f })
             }, LinearLayout.LayoutParams(MATCH, WRAP).apply { setMargins(0, dp(14), 0, 0) })
-            addView(Ui.text(this@CalcAdvActivity, "KKDF / BSMV VERGİLERİ DAHİL DEĞİL", 10f, Ui.PROG).apply { letterSpacing = 0.1f },
+            addView(Ui.text(this@CalcAdvActivity, "TAXES AND FEES NOT INCLUDED", 10f, Ui.PROG).apply { letterSpacing = 0.1f },
                 LinearLayout.LayoutParams(WRAP, WRAP).apply { setMargins(0, dp(14), 0, 0) })
         }
     }
@@ -1018,9 +1018,9 @@ class CalcAdvActivity : BaseActivity() {
     private class Cat(val l: String, val u: List<String>, val f: List<Double>?)
 
     private val cats = listOf(
-        Cat("UZUNLUK", listOf("m", "km", "cm", "mil", "ft", "in"), listOf(1.0, 1000.0, 0.01, 1609.344, 0.3048, 0.0254)),
-        Cat("AĞIRLIK", listOf("kg", "g", "lb", "oz"), listOf(1.0, 0.001, 0.45359237, 0.0283495231)),
-        Cat("SICAKLIK", listOf("°C", "°F", "K"), null)
+        Cat("LENGTH", listOf("m", "km", "cm", "mil", "ft", "in"), listOf(1.0, 1000.0, 0.01, 1609.344, 0.3048, 0.0254)),
+        Cat("WEIGHT", listOf("kg", "g", "lb", "oz"), listOf(1.0, 0.001, 0.45359237, 0.0283495231)),
+        Cat("TEMPERATURE", listOf("°C", "°F", "K"), null)
     )
 
     private fun unit(): View {
@@ -1061,9 +1061,9 @@ class CalcAdvActivity : BaseActivity() {
         return LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             addView(tabs, LinearLayout.LayoutParams(MATCH, dp(44)))
-            addView(block("DEĞER", c.u[from], { fi = (from + 1) % c.u.size; build() }, group(value), Ui.WHITE, true), LinearLayout.LayoutParams(MATCH, WRAP).apply { setMargins(0, dp(12), 0, 0) })
+            addView(block("VALUE", c.u[from], { fi = (from + 1) % c.u.size; build() }, group(value), Ui.WHITE, true), LinearLayout.LayoutParams(MATCH, WRAP).apply { setMargins(0, dp(12), 0, 0) })
             addView(View(this@CalcAdvActivity).apply { setBackgroundColor(Ui.BORDER) }, LinearLayout.LayoutParams(MATCH, dp(1)).apply { setMargins(0, dp(12), 0, 0) })
-            addView(block("SONUÇ", c.u[to], { ti = (to + 1) % c.u.size; build() }, group(toStr(out, 4)), Ui.RED, false), LinearLayout.LayoutParams(MATCH, WRAP))
+            addView(block("RESULT", c.u[to], { ti = (to + 1) % c.u.size; build() }, group(toStr(out, 4)), Ui.RED, false), LinearLayout.LayoutParams(MATCH, WRAP))
             addView(View(this@CalcAdvActivity), LinearLayout.LayoutParams(1, 0, 1f))
             addView(pad(), LinearLayout.LayoutParams(MATCH, WRAP))
         }

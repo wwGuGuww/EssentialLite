@@ -46,7 +46,7 @@ class PickerActivity : BaseActivity() {
 
         body = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         diffView = Ui.text(this, "", 11f, Ui.GREY).apply { letterSpacing = 0.14f }
-        kur = Ui.text(this, "KUR", 12f, Ui.WHITE, bold = true).apply {
+        kur = Ui.text(this, "SET", 12f, Ui.WHITE, bold = true).apply {
             letterSpacing = 0.2f
             gravity = Gravity.CENTER
             setPadding(dp(32), 0, dp(32), 0)
@@ -56,7 +56,7 @@ class PickerActivity : BaseActivity() {
         val footer = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            addView(Ui.text(this@PickerActivity, "İPTAL", 11f, Ui.GREY, bold = true).apply {
+            addView(Ui.text(this@PickerActivity, "CANCEL", 11f, Ui.GREY, bold = true).apply {
                 letterSpacing = 0.16f
                 setPadding(dp(8), dp(18), dp(16), dp(18))
                 setOnClickListener { finish() }
@@ -85,7 +85,7 @@ class PickerActivity : BaseActivity() {
     private fun save() {
         val at = targetMillis()
         Reminders.set(this, file, at)
-        Store.toast(this, "HATIRLATICI: ${Store.stamp(at)}")
+        Store.toast(this, "REMINDER: ${Store.stamp(at)}")
         finish()
     }
 
@@ -97,10 +97,10 @@ class PickerActivity : BaseActivity() {
         val diff = (at - System.currentTimeMillis()) / 60_000L
         val ok = diff > 0
         diffView.text = when {
-            !ok -> "GEÇMİŞ ZAMAN"
-            diff >= 1440 -> "${diff / 1440} GÜN ${diff % 1440 / 60} SA SONRA"
-            diff >= 60 -> "${diff / 60} SA ${diff % 60} DK SONRA"
-            else -> "$diff DK SONRA"
+            !ok -> "PAST TIME"
+            diff >= 1440 -> "IN ${diff / 1440} D ${diff % 1440 / 60} H"
+            diff >= 60 -> "IN ${diff / 60} H ${diff % 60} MIN"
+            else -> "IN $diff MIN"
         }
         diffView.setTextColor(if (ok) Ui.GREY else Ui.RED)
         kur.setTextColor(if (ok) Ui.WHITE else Ui.GREY)
@@ -109,17 +109,17 @@ class PickerActivity : BaseActivity() {
         body.addView(LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            addView(Ui.kindLabel(this@PickerActivity, "HATIRLAT"), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+            addView(Ui.kindLabel(this@PickerActivity, "REMIND"), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
             addView(diffView)
         })
 
-        val dayNames = arrayOf("PAZ", "PZT", "SAL", "ÇAR", "PER", "CUM", "CMT")
+        val dayNames = arrayOf("SUN", "MON", "TUE", "WED", "THU", "CUM", "CMT")
         val weekday = dayNames[Calendar.getInstance().apply { set(sel.first, sel.second, sel.third) }.get(Calendar.DAY_OF_WEEK) - 1]
         body.addView(LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
-            addView(tabBox("TARİH · $weekday", "%02d.%02d".format(sel.third, sel.second + 1), tab == "date") { tab = "date"; render() },
+            addView(tabBox("DATE · $weekday", "%02d.%02d".format(sel.third, sel.second + 1), tab == "date") { tab = "date"; render() },
                 LinearLayout.LayoutParams(0, dp(92), 1f).apply { setMargins(0, dp(18), dp(4), 0) })
-            addView(tabBox("SAAT", "%02d:%02d".format(hour, minute), tab == "time") { tab = "time"; render() },
+            addView(tabBox("CLOCK", "%02d:%02d".format(hour, minute), tab == "time") { tab = "time"; render() },
                 LinearLayout.LayoutParams(0, dp(92), 1f).apply { setMargins(dp(4), dp(18), 0, 0) })
         })
 
@@ -127,9 +127,9 @@ class PickerActivity : BaseActivity() {
             orientation = LinearLayout.HORIZONTAL
             setPadding(0, dp(12), 0, 0)
         }
-        quickChip(quick, "BUGÜN 18:00", 0, 18)
-        quickChip(quick, "YARIN 09:00", 1, 9)
-        quickChip(quick, "HAFTA 09:00", 7, 9)
+        quickChip(quick, "TODAY 18:00", 0, 18)
+        quickChip(quick, "TOMORROW 09:00", 1, 9)
+        quickChip(quick, "NEXT WEEK 09:00", 7, 9)
         body.addView(quick)
 
         val content = FrameLayout(this)
@@ -176,7 +176,7 @@ class PickerActivity : BaseActivity() {
     }
 
     private fun calendarView(): View {
-        val months = arrayOf("OCAK", "ŞUBAT", "MART", "NİSAN", "MAYIS", "HAZİRAN", "TEMMUZ", "AĞUSTOS", "EYLÜL", "EKİM", "KASIM", "ARALIK")
+        val months = arrayOf("JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER")
         val today = Calendar.getInstance()
         val tY = today.get(Calendar.YEAR)
         val tM = today.get(Calendar.MONTH)
@@ -203,7 +203,7 @@ class PickerActivity : BaseActivity() {
 
         col.addView(LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
-            arrayOf("PZT", "SAL", "ÇAR", "PER", "CUM", "CMT", "PAZ").forEach { d ->
+            arrayOf("MON", "TUE", "WED", "THU", "CUM", "CMT", "SUN").forEach { d ->
                 addView(Ui.text(this@PickerActivity, d, 9f, Ui.GREY).apply {
                     gravity = Gravity.CENTER
                     letterSpacing = 0.06f

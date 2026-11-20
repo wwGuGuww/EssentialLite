@@ -23,7 +23,7 @@ object Shot {
         val bytes = p.inputStream.readBytes()
         val code = p.waitFor()
         if (code != 0 || bytes.isEmpty()) {
-            AppLog.e(ctx, "EKRAN: screencap başarısız, kod=$code")
+            AppLog.e(ctx, "SCREEN: screencap failed, code=$code")
             return null
         }
         val file = Store.newFile(ctx, "png")
@@ -69,7 +69,7 @@ object Shot {
 
     /** Eski çağrı noktaları (widget, uygulama düğmesi) için mesaj döndüren sarmalayıcı. */
     fun take(ctx: Context, source: String? = null): String {
-        if (!ready()) return "SHİZUKU HAZIR DEĞİL"
-        return if (capture(ctx, source) != null) "EKRAN KAYDEDİLDİ" else "EKRAN ALINAMADI"
+        if (!ready()) return "SHIZUKU NOT READY"
+        return if (capture(ctx, source) != null) "SCREEN SAVED" else "COULDN'T CAPTURE SCREEN"
     }
 }

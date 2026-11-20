@@ -109,7 +109,7 @@ class LinkActivity : BaseActivity() {
             isVerticalScrollBarEnabled = false
             addView(root, FrameLayout.LayoutParams(MATCH, WRAP))
         }
-        status = ToolUi.screen(this, "PC BAĞLANTISI", "", scroll, topGap = 16)
+        status = ToolUi.screen(this, "PC LINK", "", scroll, topGap = 16)
     }
 
     override fun onResume() {
@@ -131,12 +131,12 @@ class LinkActivity : BaseActivity() {
         val live = Link.live
         val connecting = Link.st == Link.St.CONNECTING
         val saved = Link.saved(this)
-        status.text = dot(if (live) "● BAĞLI" else if (connecting) "BAĞLANIYOR…" else "BAĞLI DEĞİL", Ui.RED)
+        status.text = dot(if (live) "● CONNECTED" else if (connecting) "CONNECTING…" else "NOT CONNECTED", Ui.RED)
         status.setTextColor(if (live) Ui.WHITE else Ui.GREY)
         root.removeAllViews()
 
         // Bağlantı kartı
-        val pcShort = if (live) Link.pcName.take(10) else "PC YOK"
+        val pcShort = if (live) Link.pcName.take(10) else "NO PC"
         val col = { icon: List<String>, label: String ->
             LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL
@@ -154,17 +154,17 @@ class LinkActivity : BaseActivity() {
             addView(col(PC_ICON, pcShort), LinearLayout.LayoutParams(dp(74), WRAP))
         }
         val info = when {
-            live -> "${Link.pcOs} · Wİ-Fİ · ŞİFRELİ"
-            connecting -> "ŞİFRELİ KANAL KURULUYOR"
+            live -> "${Link.pcOs} · WI-FI · ENCRYPTED"
+            connecting -> "SETTING UP ENCRYPTED CHANNEL"
             Link.note.isNotEmpty() -> Link.note
-            saved -> "KAYITLI: " + Link.prefs(this).getString("pc", "PC")
-            else -> "PC'DEKİ QR KODU OKUT"
+            saved -> "SAVED: " + Link.prefs(this).getString("pc", "PC")
+            else -> "SCAN THE QR CODE ON THE PC"
         }
         val pingTv = Ui.text(this, "", 10f, Ui.GREY).apply {
             letterSpacing = 0.12f
             gravity = Gravity.END
             setLineSpacing(0f, 1.5f)
-            val sp = SpannableStringBuilder("GECİKME\n" + if (live && Link.ping > 0) "${Link.ping} MS" else "--")
+            val sp = SpannableStringBuilder("LATENCY\n" + if (live && Link.ping > 0) "${Link.ping} MS" else "--")
             sp.setSpan(ForegroundColorSpan(Ui.WHITE), 8, sp.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
             text = sp
         }.also { pingView = it }
@@ -173,12 +173,12 @@ class LinkActivity : BaseActivity() {
             gravity = Gravity.BOTTOM
             addView(LinearLayout(this@LinkActivity).apply {
                 orientation = LinearLayout.VERTICAL
-                addView(Ui.display(this@LinkActivity, if (live) Link.pcName.take(12) else if (connecting) "BAĞLANIYOR" else "BAĞLI DEĞİL", 34f, if (live || connecting) Ui.WHITE else Ui.PROG).apply { maxLines = 1 })
+                addView(Ui.display(this@LinkActivity, if (live) Link.pcName.take(12) else if (connecting) "CONNECTING" else "NOT CONNECTED", 34f, if (live || connecting) Ui.WHITE else Ui.PROG).apply { maxLines = 1 })
                 addView(Ui.text(this@LinkActivity, info, 10f, Ui.GREY).apply { letterSpacing = 0.12f }, LinearLayout.LayoutParams(WRAP, WRAP).apply { setMargins(0, dp(8), 0, 0) })
             }, LinearLayout.LayoutParams(0, WRAP, 1f))
             addView(pingTv)
         }
-        val main = outlineBtn(this, if (live) "BAĞLANTIYI KES" else "QR İLE BAĞLAN", true, if (live) Ui.LINE else Ui.WHITE, if (live) Ui.GREY else Ui.WHITE) {
+        val main = outlineBtn(this, if (live) "DISCONNECT" else "CONNECT WITH QR", true, if (live) Ui.LINE else Ui.WHITE, if (live) Ui.GREY else Ui.WHITE) {
             if (live) Link.disconnect(this, forget = false)
             else startActivity(Intent(this, LinkScanActivity::class.java))
         }
@@ -189,7 +189,7 @@ class LinkActivity : BaseActivity() {
             addView(link)
             addView(nameRow, LinearLayout.LayoutParams(MATCH, WRAP).apply { setMargins(0, dp(18), 0, 0) })
             addView(main, LinearLayout.LayoutParams(MATCH, dp(56)).apply { setMargins(0, dp(18), 0, 0) })
-            if (saved && !live && !connecting) addView(outlineBtn(this@LinkActivity, "KAYITLI PC'YE BAĞLAN", false, Ui.LINE, Ui.GREY) {
+            if (saved && !live && !connecting) addView(outlineBtn(this@LinkActivity, "CONNECT TO SAVED PC", false, Ui.LINE, Ui.GREY) {
                 Link.prefs(this@LinkActivity).edit().putBoolean("auto", true).apply()
                 Link.reconnectSaved(this@LinkActivity)
             }, LinearLayout.LayoutParams(MATCH, dp(48)).apply { setMargins(0, dp(10), 0, 0) })
@@ -206,23 +206,23 @@ class LinkActivity : BaseActivity() {
             addView(Ui.display(this@LinkActivity, "", 24f).apply { text = big })
             Ui.pressAnim(this)
             setOnClickListener {
-                if (!Link.live) Store.toast(this@LinkActivity, "ÖNCE PC'YE BAĞLAN") else startActivity(Intent(this@LinkActivity, cls))
+                if (!Link.live) Store.toast(this@LinkActivity, "CONNECT TO A PC FIRST") else startActivity(Intent(this@LinkActivity, cls))
             }
         }
         root.addView(LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
-            addView(quick("PC'YE GÖNDER", "DOSYA ↗", LinkSendActivity::class.java), LinearLayout.LayoutParams(0, dp(92), 1f).apply { setMargins(0, 0, dp(5), 0) })
-            addView(quick("PC'DEN YÖNET", SpannableStringBuilder("KONTROL ●").also { it.setSpan(ForegroundColorSpan(Ui.RED), 8, 9, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE) }, LinkControlActivity::class.java), LinearLayout.LayoutParams(0, dp(92), 1f).apply { setMargins(dp(5), 0, 0, 0) })
+            addView(quick("SEND TO PC", "FILE ↗", LinkSendActivity::class.java), LinearLayout.LayoutParams(0, dp(92), 1f).apply { setMargins(0, 0, dp(5), 0) })
+            addView(quick("MANAGE FROM PC", SpannableStringBuilder("CONTROL ●").also { it.setSpan(ForegroundColorSpan(Ui.RED), 8, 9, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE) }, LinkControlActivity::class.java), LinearLayout.LayoutParams(0, dp(92), 1f).apply { setMargins(dp(5), 0, 0, 0) })
         }, LinearLayout.LayoutParams(MATCH, WRAP).apply { setMargins(0, dp(16), 0, 0) })
 
         // Senkron
-        root.addView(sectionLabel(this, "● SENKRON"), LinearLayout.LayoutParams(MATCH, WRAP).apply { setMargins(0, dp(16), 0, 0) })
+        root.addView(sectionLabel(this, "● SYNC"), LinearLayout.LayoutParams(MATCH, WRAP).apply { setMargins(0, dp(16), 0, 0) })
         data class F(val k: String, val label: String, val sub: String, val def: Boolean)
         val feats = listOf(
-            F("notif", "BİLDİRİMLERİ PC'YE YOLLA", "Tüm uygulamalar · yanıt PC'den", true),
-            F("clip", "PANOYU EŞLE", "Kopyala telefonda, yapıştır PC'de", true),
-            F("files", "DOSYA AKTARIMI", "Essential Lite kayıtları · sürükle-bırak", true),
-            F("mirror", "EKRANI PC'YE YANSIT", "Sadece izle · kontrol ayrı izin", false)
+            F("notif", "SEND NOTIFICATIONS TO PC", "All apps · reply from PC", true),
+            F("clip", "SYNC CLIPBOARD", "Copy on the phone, paste on the PC", true),
+            F("files", "FILE TRANSFER", "Essential Lite records · drag and drop", true),
+            F("mirror", "MIRROR SCREEN TO PC", "View only · control needs separate permission", false)
         )
         feats.forEach { f ->
             val on = Link.feature(this, f.k, f.def) && (f.k != "mirror" || LinkControl.active)
@@ -241,9 +241,9 @@ class LinkActivity : BaseActivity() {
         }
 
         // Son aktarımlar
-        root.addView(sectionLabel(this, "● SON AKTARIMLAR"), LinearLayout.LayoutParams(MATCH, WRAP).apply { setMargins(0, dp(16), 0, 0) })
+        root.addView(sectionLabel(this, "● RECENT TRANSFERS"), LinearLayout.LayoutParams(MATCH, WRAP).apply { setMargins(0, dp(16), 0, 0) })
         val recent = Link.recent(this).take(3)
-        if (recent.isEmpty()) root.addView(Ui.text(this, "HENÜZ AKTARIM YOK", 10f, Ui.GREY).apply { letterSpacing = 0.14f; setPadding(0, dp(12), 0, dp(12)) })
+        if (recent.isEmpty()) root.addView(Ui.text(this, "NO TRANSFERS YET", 10f, Ui.GREY).apply { letterSpacing = 0.14f; setPadding(0, dp(12), 0, dp(12)) })
         recent.forEach { r ->
             root.addView(View(this).apply { setBackgroundColor(Ui.OFF) }, LinearLayout.LayoutParams(MATCH, 1))
             root.addView(LinearLayout(this).apply {
@@ -265,7 +265,7 @@ class LinkActivity : BaseActivity() {
             gravity = Gravity.CENTER_VERTICAL
             setPadding(0, dp(14), 0, dp(24))
             addView(DotIcon(this@LinkActivity, LOCK_ICON, Ui.GREY, 21))
-            addView(Ui.text(this@LinkActivity, "Uçtan uca şifreli. Sunucuda hiçbir şey saklanmaz.", 10f, Ui.GREY).apply { letterSpacing = 0.08f; setLineSpacing(0f, 1.3f) },
+            addView(Ui.text(this@LinkActivity, "End-to-end encrypted. Nothing is stored on a server.", 10f, Ui.GREY).apply { letterSpacing = 0.08f; setLineSpacing(0f, 1.3f) },
                 LinearLayout.LayoutParams(0, WRAP, 1f).apply { setMargins(dp(10), 0, 0, 0) })
         }, LinearLayout.LayoutParams(MATCH, WRAP))
     }
@@ -273,9 +273,9 @@ class LinkActivity : BaseActivity() {
     private fun ago(t: Long): String {
         val m = (System.currentTimeMillis() - t) / 60000
         return when {
-            m < 1 -> "ŞİMDİ"
-            m < 60 -> "$m DK ÖNCE"
-            m < 1440 -> "${m / 60} SA ÖNCE"
+            m < 1 -> "NOW"
+            m < 60 -> "$m MIN AGO"
+            m < 1440 -> "${m / 60} H AGO"
             else -> Store.dateOf(t)
         }
     }
@@ -284,11 +284,11 @@ class LinkActivity : BaseActivity() {
         Link.setFeature(this, k, on)
         when (k) {
             "notif" -> if (on && !LinkNotif.enabled(this)) {
-                Store.toast(this, "ESSENTIAL LITE İÇİN BİLDİRİM ERİŞİMİ VER")
+                Store.toast(this, "GRANT NOTIFICATION ACCESS TO ESSENTIAL LITE")
                 runCatching { startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)) }
             }
             "mirror" -> if (on) {
-                if (!Link.live) { Store.toast(this, "ÖNCE PC'YE BAĞLAN"); Link.setFeature(this, k, false) }
+                if (!Link.live) { Store.toast(this, "CONNECT TO A PC FIRST"); Link.setFeature(this, k, false) }
                 else startActivity(Intent(this, LinkControlActivity::class.java).putExtra("mirror", true))
             } else LinkControl.stopAll()
         }
@@ -354,7 +354,7 @@ class LinkScanActivity : BaseActivity() {
         fun dp(v: Int) = ToolUi.dp(this, v)
         preview = PreviewView(this).apply { implementationMode = PreviewView.ImplementationMode.COMPATIBLE; scaleType = PreviewView.ScaleType.FILL_CENTER }
         frame = ScanFrame(this)
-        hint = Ui.text(this, "KODU ÇERÇEVEYE AL", 10f, Ui.GREY).apply { letterSpacing = 0.18f; gravity = Gravity.CENTER }
+        hint = Ui.text(this, "FRAME THE CODE", 10f, Ui.GREY).apply { letterSpacing = 0.18f; gravity = Gravity.CENTER }
         val cam = FrameLayout(this).apply {
             background = Ui.rounded(this@LinkScanActivity, Ui.SURFACE, 32f, Ui.BORDER)
             clipToOutline = true
@@ -364,9 +364,9 @@ class LinkScanActivity : BaseActivity() {
         }
         val body = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            addView(Ui.display(this@LinkScanActivity, "PC'DEKİ\nKODU OKUT", 44f).apply { setLineSpacing(0f, 0.9f) })
+            addView(Ui.display(this@LinkScanActivity, "SCAN THE CODE\nON THE PC", 44f).apply { setLineSpacing(0f, 0.9f) })
             addView(Ui.text(this@LinkScanActivity, "", 11f, Ui.GREY).apply {
-                val s = SpannableStringBuilder("01 PC'de bilgisayardaki Essential Lite'ı aç\n02 Ekrandaki QR'ı çerçeveye al")
+                val s = SpannableStringBuilder("01 Open Essential Lite on your PC\n02 Frame the QR on screen")
                 s.setSpan(ForegroundColorSpan(Ui.RED), 0, 2, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
                 s.setSpan(ForegroundColorSpan(Ui.RED), s.indexOf("02"), s.indexOf("02") + 2, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
                 text = s
@@ -378,16 +378,16 @@ class LinkScanActivity : BaseActivity() {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER
                 addView(View(this@LinkScanActivity).apply { background = Ui.rounded(this@LinkScanActivity, Ui.RED, 6f) }, LinearLayout.LayoutParams(dp(6), dp(6)))
-                addView(Ui.text(this@LinkScanActivity, "AYNI Wİ-Fİ'DE OLMAK YETERLİ · İNTERNETSİZ ÇALIŞIR", 10f, Ui.GREY).apply { letterSpacing = 0.14f }, LinearLayout.LayoutParams(WRAP, WRAP).apply { setMargins(dp(8), 0, 0, 0) })
+                addView(Ui.text(this@LinkScanActivity, "SAME WI-FI IS ENOUGH · WORKS OFFLINE", 10f, Ui.GREY).apply { letterSpacing = 0.14f }, LinearLayout.LayoutParams(WRAP, WRAP).apply { setMargins(dp(8), 0, 0, 0) })
             }, LinearLayout.LayoutParams(MATCH, WRAP).apply { setMargins(0, dp(18), 0, 0) })
             addView(View(this@LinkScanActivity), LinearLayout.LayoutParams(1, 0, 1f))
             addView(LinearLayout(this@LinkScanActivity).apply {
                 orientation = LinearLayout.HORIZONTAL
-                addView(outlineBtn(this@LinkScanActivity, "KODU ELLE GİR", false, Ui.LINE, Ui.WHITE) { manual() }, LinearLayout.LayoutParams(0, dp(56), 1f).apply { setMargins(0, 0, dp(5), 0) })
-                addView(outlineBtn(this@LinkScanActivity, "YENİDEN", false, Ui.LINE, Ui.GREY) { rescan() }, LinearLayout.LayoutParams(dp(120), dp(56)).apply { setMargins(dp(5), 0, 0, 0) })
+                addView(outlineBtn(this@LinkScanActivity, "ENTER CODE MANUALLY", false, Ui.LINE, Ui.WHITE) { manual() }, LinearLayout.LayoutParams(0, dp(56), 1f).apply { setMargins(0, 0, dp(5), 0) })
+                addView(outlineBtn(this@LinkScanActivity, "AGAIN", false, Ui.LINE, Ui.GREY) { rescan() }, LinearLayout.LayoutParams(dp(120), dp(56)).apply { setMargins(dp(5), 0, 0, 0) })
             }, LinearLayout.LayoutParams(MATCH, WRAP))
         }
-        status = ToolUi.screen(this, "QR OKUT", "ARANIYOR", body, topGap = 18)
+        status = ToolUi.screen(this, "SCAN QR", "SEARCHING", body, topGap = 18)
         anim = ValueAnimator.ofFloat(0f, 1f).apply {
             duration = 2400; repeatCount = ValueAnimator.INFINITE; repeatMode = ValueAnimator.REVERSE
             addUpdateListener { frame.line = it.animatedFraction; frame.invalidate() }
@@ -399,7 +399,7 @@ class LinkScanActivity : BaseActivity() {
 
     override fun onRequestPermissionsResult(code: Int, perms: Array<out String>, res: IntArray) {
         if (code == 41 && res.firstOrNull() == PackageManager.PERMISSION_GRANTED) startCamera()
-        else { hint.text = "KAMERA İZNİ GEREKLİ · KODU ELLE GİR" }
+        else { hint.text = "CAMERA PERMISSION NEEDED · ENTER CODE MANUALLY" }
     }
 
     private fun startCamera() {
@@ -428,18 +428,18 @@ class LinkScanActivity : BaseActivity() {
     private fun onCode(raw: String) {
         if (handled) return
         val p = Link.parse(raw)
-        if (p == null) { hint.text = "BU BİR ESSENTIAL KODU DEĞİL"; return }
+        if (p == null) { hint.text = "NOT AN ESSENTIAL CODE"; return }
         handled = true
         host = p.first; port = p.second
         frame.found = true; frame.invalidate()
-        hint.text = "QR OKUNDU"; hint.setTextColor(Ui.RED)
-        status.text = dot("● ALINDI", Ui.RED); status.setTextColor(Ui.GREY)
+        hint.text = "QR SCANNED"; hint.setTextColor(Ui.RED)
+        status.text = dot("● CAPTURED", Ui.RED); status.setTextColor(Ui.GREY)
         Link.connect(this, p.first, p.second, p.third, true)
     }
 
     private fun manual() {
-        Sheet.input(this, "BAĞLANTI KODU", "el://…", "") { v ->
-            if (Link.parse(v) == null) Store.toast(this, "KOD GEÇERSİZ") else onCode(v.trim())
+        Sheet.input(this, "PAIRING CODE", "el://…", "") { v ->
+            if (Link.parse(v) == null) Store.toast(this, "INVALID CODE") else onCode(v.trim())
         }
     }
 
@@ -448,15 +448,15 @@ class LinkScanActivity : BaseActivity() {
         Link.disconnect(this, forget = false, quiet = true)
         closeSheet()
         frame.found = false; frame.invalidate()
-        hint.text = "KODU ÇERÇEVEYE AL"; hint.setTextColor(Ui.GREY)
-        status.text = "ARANIYOR"
+        hint.text = "FRAME THE CODE"; hint.setTextColor(Ui.GREY)
+        status.text = "SEARCHING"
     }
 
     private fun onLink() {
         when (Link.st) {
             Link.St.CONFIRM -> if (sheet == null) openSheet()
             Link.St.OFF -> if (handled && sheet == null) {
-                hint.text = Link.note.ifEmpty { "BAĞLANTI KESİLDİ" }
+                hint.text = Link.note.ifEmpty { "DISCONNECTED" }
                 hint.setTextColor(Ui.RED)
                 handled = false
                 frame.found = false; frame.invalidate()
@@ -491,18 +491,18 @@ class LinkScanActivity : BaseActivity() {
             addView(LinearLayout(this@LinkScanActivity).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER_VERTICAL
-                addView(Ui.text(this@LinkScanActivity, "", 11f, Ui.WHITE, bold = true).apply { text = dot("● PC BULUNDU", Ui.RED); letterSpacing = 0.18f }, LinearLayout.LayoutParams(0, WRAP, 1f))
+                addView(Ui.text(this@LinkScanActivity, "", 11f, Ui.WHITE, bold = true).apply { text = dot("● PC FOUND", Ui.RED); letterSpacing = 0.18f }, LinearLayout.LayoutParams(0, WRAP, 1f))
                 addView(Ui.text(this@LinkScanActivity, "${Link.pcName} · ${Link.pcOs}", 10f, Ui.GREY).apply { letterSpacing = 0.14f })
             })
-            addView(Ui.text(this@LinkScanActivity, "ONAY KODU · PC'DEKİYLE AYNI MI?", 10f, Ui.GREY).apply { letterSpacing = 0.18f }, LinearLayout.LayoutParams(WRAP, WRAP).apply { setMargins(0, dp(18), 0, 0) })
+            addView(Ui.text(this@LinkScanActivity, "CONFIRMATION CODE · SAME AS ON THE PC?", 10f, Ui.GREY).apply { letterSpacing = 0.18f }, LinearLayout.LayoutParams(WRAP, WRAP).apply { setMargins(0, dp(18), 0, 0) })
             addView(code, LinearLayout.LayoutParams(MATCH, WRAP).apply { setMargins(0, dp(10), 0, 0) })
-            addView(Ui.text(this@LinkScanActivity, "Bu PC bildirimlerini alacak ve dosya yollayabilecek. Uzak kontrol için ayrıca izin istenir.", 10f, Ui.GREY).apply { letterSpacing = 0.08f; setLineSpacing(0f, 1.5f) }, LinearLayout.LayoutParams(WRAP, WRAP).apply { setMargins(0, dp(18), 0, 0) })
+            addView(Ui.text(this@LinkScanActivity, "This PC will receive notifications and can send files. Remote control asks for separate permission.", 10f, Ui.GREY).apply { letterSpacing = 0.08f; setLineSpacing(0f, 1.5f) }, LinearLayout.LayoutParams(WRAP, WRAP).apply { setMargins(0, dp(18), 0, 0) })
             addView(LinearLayout(this@LinkScanActivity).apply {
                 orientation = LinearLayout.HORIZONTAL
-                addView(outlineBtn(this@LinkScanActivity, "REDDET", false, Ui.LINE, Ui.RED) { rescan() }, LinearLayout.LayoutParams(dp(120), dp(56)).apply { setMargins(0, 0, dp(5), 0) })
-                addView(outlineBtn(this@LinkScanActivity, "ONAYLA", true, Ui.WHITE, Ui.WHITE) {
+                addView(outlineBtn(this@LinkScanActivity, "DECLINE", false, Ui.LINE, Ui.RED) { rescan() }, LinearLayout.LayoutParams(dp(120), dp(56)).apply { setMargins(0, 0, dp(5), 0) })
+                addView(outlineBtn(this@LinkScanActivity, "CONFIRM", true, Ui.WHITE, Ui.WHITE) {
                     Link.accept(this@LinkScanActivity, host, port)
-                    Store.toast(this@LinkScanActivity, "PC BAĞLANDI")
+                    Store.toast(this@LinkScanActivity, "PC CONNECTED")
                     finish()
                 }, LinearLayout.LayoutParams(0, dp(56), 1f).apply { setMargins(dp(5), 0, 0, 0) })
             }, LinearLayout.LayoutParams(MATCH, WRAP).apply { setMargins(0, dp(18), 0, 0) })
@@ -602,7 +602,7 @@ class LinkSendActivity : BaseActivity() {
                 addView(btn, LinearLayout.LayoutParams(MATCH, dp(64)))
             }, FrameLayout.LayoutParams(MATCH, WRAP, Gravity.BOTTOM))
         }
-        ToolUi.screen(this, "PC'YE GÖNDER", "→ " + Link.pcName.ifEmpty { "PC" }, body, topGap = 16)
+        ToolUi.screen(this, "SEND TO PC", "→ " + Link.pcName.ifEmpty { "PC" }, body, topGap = 16)
         Thread {
             val all = Store.all(this)
             runOnUiThread { entries = all; render() }
@@ -612,23 +612,23 @@ class LinkSendActivity : BaseActivity() {
 
     private fun nameOf(e: Entry): String = when {
         e.title.isNotBlank() -> e.title
-        e.kind == "NOT" -> e.preview.ifEmpty { "Not" }
-        e.kind == "SES" -> "Ses kaydı " + Store.clock(e.time)
-        e.kind == "EKRAN" -> "Ekran görüntüsü " + Store.clock(e.time)
+        e.kind == "NOTE" -> e.preview.ifEmpty { "Note" }
+        e.kind == "VOICE" -> "Voice memo " + Store.clock(e.time)
+        e.kind == "SCREEN" -> "Screenshot " + Store.clock(e.time)
         else -> e.file.name
     }
 
     private fun render() {
         fun dp(v: Int) = ToolUi.dp(this, v)
-        val names = listOf("HEPSİ", "EKRAN", "NOT", "SES")
+        val names = listOf("ALL", "SCREEN", "NOTE", "VOICE")
         tabsRow.removeAllViews()
         names.forEachIndexed { i, n ->
             tabsRow.addView(ToolUi.ghost(this, n, tab == i) { tab = i; render() }.apply { textSize = 10.5f; letterSpacing = 0.08f; background = Ui.rounded(this@LinkSendActivity, Color.TRANSPARENT, 22f, if (tab == i) Ui.WHITE else Ui.LINE) },
                 LinearLayout.LayoutParams(0, MATCH, 1f).apply { setMargins(if (i == 0) 0 else dp(3), 0, if (i == 3) 0 else dp(3), 0) })
         }
-        val shown = entries.filter { tab == 0 || (tab == 1 && it.kind == "EKRAN") || (tab == 2 && it.kind == "NOT") || (tab == 3 && it.kind == "SES") }
+        val shown = entries.filter { tab == 0 || (tab == 1 && it.kind == "SCREEN") || (tab == 2 && it.kind == "NOTE") || (tab == 3 && it.kind == "VOICE") }
         list.removeAllViews()
-        if (shown.isEmpty()) list.addView(Ui.text(this, "KAYIT YOK", 11f, Ui.GREY).apply { letterSpacing = 0.16f; gravity = Gravity.CENTER; setPadding(0, dp(40), 0, dp(40)) }, LinearLayout.LayoutParams(MATCH, WRAP))
+        if (shown.isEmpty()) list.addView(Ui.text(this, "NO RECORDS", 11f, Ui.GREY).apply { letterSpacing = 0.16f; gravity = Gravity.CENTER; setPadding(0, dp(40), 0, dp(40)) }, LinearLayout.LayoutParams(MATCH, WRAP))
         for (e in shown) {
             val on = e.file.absolutePath in selected
             list.addView(LinearLayout(this).apply {
@@ -662,14 +662,14 @@ class LinkSendActivity : BaseActivity() {
         list.addView(View(this), LinearLayout.LayoutParams(1, dp(150)))
         val total = selected.sumOf { File(it).length() }
         count.text = selected.size.toString().padStart(2, '0')
-        size.text = SpannableStringBuilder("SEÇİLİ\n" + if (total < 100 * 1024) "< 0,1 MB" else Link.sizeText(total)).also { it.setSpan(ForegroundColorSpan(Ui.WHITE), 7, it.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE) }
+        size.text = SpannableStringBuilder("SELECTED\n" + if (total < 100 * 1024) "< 0.1 MB" else Link.sizeText(total)).also { it.setSpan(ForegroundColorSpan(Ui.WHITE), 9, it.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE) }
         val ready = selected.isNotEmpty() || phase == 2
-        val label = when (phase) { 1 -> "GÖNDERİLİYOR…"; 2 -> "TAMAM · YENİ SEÇİM"; else -> if (selected.isNotEmpty()) "PC'YE GÖNDER · ${selected.size}" else "ÖĞE SEÇ" }
+        val label = when (phase) { 1 -> "SENDING…"; 2 -> "OK · NEW SELECTION"; else -> if (selected.isNotEmpty()) "SEND TO PC · ${selected.size}" else "PICK ITEM" }
         btn.text = dot("● $label", Ui.RED)
         btn.setTextColor(if (ready) Ui.WHITE else Ui.GREY)
         btn.background = Ui.rounded(this, Ui.BG, 32f, if (ready) Ui.WHITE else Ui.LINE)
         prog.visibility = if (phase == 0) View.GONE else View.VISIBLE
-        progText.text = if (phase == 2) "● GÖNDERİLDİ · PC İNDİRİLENLER" else "GÖNDERİLİYOR… %$pct"
+        progText.text = if (phase == 2) "● SENT · PC DOWNLOADS" else "SENDING… $pct%"
         progText.setTextColor(if (phase == 2) Ui.WHITE else Ui.RED)
         paintProg()
     }
@@ -683,11 +683,11 @@ class LinkSendActivity : BaseActivity() {
     private fun onButton() {
         if (phase == 2) { phase = 0; pct = 0; render(); return }
         if (phase == 1 || selected.isEmpty()) return
-        if (!Link.live) { Store.toast(this, "PC BAĞLI DEĞİL"); return }
+        if (!Link.live) { Store.toast(this, "PC NOT CONNECTED"); return }
         phase = 1; pct = 0
         val files = selected.map { File(it) }
         render()
-        Link.sendFiles(this, files, { p, _ -> ui.post { pct = p; progText.text = "GÖNDERİLİYOR… %$p"; paintProg() } }) {
+        Link.sendFiles(this, files, { p, _ -> ui.post { pct = p; progText.text = "SENDING… $p%"; paintProg() } }) {
             phase = 2; pct = 100; selected.clear(); render()
         }
     }
@@ -759,9 +759,9 @@ class LinkControlActivity : BaseActivity() {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             addView(View(this@LinkControlActivity).apply { background = Ui.rounded(this@LinkControlActivity, Ui.RED, 4f) }, LinearLayout.LayoutParams(dp(8), dp(8)))
-            addView(Ui.text(this@LinkControlActivity, "${Link.pcName.ifEmpty { "PC" }} KONTROL EDİYOR", 10f, Ui.WHITE).apply { letterSpacing = 0.16f }, LinearLayout.LayoutParams(WRAP, WRAP).apply { setMargins(dp(8), 0, 0, 0) })
+            addView(Ui.text(this@LinkControlActivity, "${Link.pcName.ifEmpty { "PC" }} IS IN CONTROL", 10f, Ui.WHITE).apply { letterSpacing = 0.16f }, LinearLayout.LayoutParams(WRAP, WRAP).apply { setMargins(dp(8), 0, 0, 0) })
         }
-        idleTxt = Ui.text(this, "OTURUM BEKLİYOR", 10f, Ui.GREY).apply { letterSpacing = 0.18f }
+        idleTxt = Ui.text(this, "WAITING FOR SESSION", 10f, Ui.GREY).apply { letterSpacing = 0.18f }
         preview = FrameLayout(this).apply {
             addView(field, FrameLayout.LayoutParams(WRAP, WRAP, Gravity.CENTER))
             addView(liveRow, FrameLayout.LayoutParams(WRAP, WRAP, Gravity.TOP or Gravity.START).apply { setMargins(dp(18), dp(16), 0, 0) })
@@ -782,7 +782,7 @@ class LinkControlActivity : BaseActivity() {
             addView(ScrollView(this@LinkControlActivity).apply { isVerticalScrollBarEnabled = false; addView(permBox) }, LinearLayout.LayoutParams(MATCH, 0, 1f).apply { setMargins(0, dp(16), 0, 0) })
             addView(main, LinearLayout.LayoutParams(MATCH, dp(60)).apply { setMargins(0, dp(16), 0, 0) })
         }
-        status = ToolUi.screen(this, "UZAKTAN KONTROL", "", body, topGap = 16)
+        status = ToolUi.screen(this, "REMOTE CONTROL", "", body, topGap = 16)
         paint()
         if (mirrorOnly && Link.live && !LinkControl.active) requestProjection()
     }
@@ -805,11 +805,11 @@ class LinkControlActivity : BaseActivity() {
     private fun paint() {
         fun dp(v: Int) = ToolUi.dp(this, v)
         val live = LinkControl.active
-        status.text = dot(if (live) "● AKTİF" else "KAPALI", Ui.RED)
+        status.text = dot(if (live) "● ACTIVE" else "OFF", Ui.RED)
         status.setTextColor(if (live) Ui.RED else Ui.GREY)
         if (!live) timeView.text = "00:00"
         timeView.setTextColor(if (live) Ui.WHITE else Ui.PROG)
-        limitView.text = SpannableStringBuilder("OTURUM\n" + if (Link.feature(this, "c_auto", true)) "MAKS 05:00" else "SINIRSIZ").also { it.setSpan(ForegroundColorSpan(Ui.WHITE), 7, it.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE) }
+        limitView.text = SpannableStringBuilder("SESSION\n" + if (Link.feature(this, "c_auto", true)) "MAX 05:00" else "UNLIMITED").also { it.setSpan(ForegroundColorSpan(Ui.WHITE), 8, it.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE) }
         liveRow.visibility = if (live) View.VISIBLE else View.GONE
         idleTxt.visibility = if (live) View.GONE else View.VISIBLE
         preview.background = Ui.rounded(this, Ui.SURFACE, 28f, if (live) Ui.RED else Ui.BORDER)
@@ -817,7 +817,7 @@ class LinkControlActivity : BaseActivity() {
         field.live = live
 
         permBox.removeAllViews()
-        permBox.addView(sectionLabel(this, "● GEREKEN İZİNLER").apply { setPadding(0, dp(4), 0, dp(8)) })
+        permBox.addView(sectionLabel(this, "● REQUIRED PERMISSIONS").apply { setPadding(0, dp(4), 0, dp(8)) })
         fun perm(label: String, sub: String, ok: Boolean, onTap: () -> Unit) {
             permBox.addView(View(this).apply { setBackgroundColor(Ui.OFF) }, LinearLayout.LayoutParams(MATCH, 1))
             permBox.addView(LinearLayout(this).apply {
@@ -830,16 +830,16 @@ class LinkControlActivity : BaseActivity() {
                     addView(Ui.text(this@LinkControlActivity, label, 12f, Ui.WHITE, bold = true).apply { letterSpacing = 0.08f })
                     addView(Ui.text(this@LinkControlActivity, sub, 10f, Ui.GREY).apply { letterSpacing = 0.06f }, LinearLayout.LayoutParams(WRAP, WRAP).apply { setMargins(0, dp(4), 0, 0) })
                 }, LinearLayout.LayoutParams(0, WRAP, 1f).apply { setMargins(dp(12), 0, dp(8), 0) })
-                addView(Ui.text(this@LinkControlActivity, if (ok) "VERİLDİ" else "VER", 10f, if (ok) Ui.GREY else Ui.WHITE, bold = !ok).apply { letterSpacing = 0.12f; setPadding(dp(8), dp(10), 0, dp(10)) })
+                addView(Ui.text(this@LinkControlActivity, if (ok) "GRANTED" else "GRANT", 10f, if (ok) Ui.GREY else Ui.WHITE, bold = !ok).apply { letterSpacing = 0.12f; setPadding(dp(8), dp(10), 0, dp(10)) })
                 if (!ok) setOnClickListener { onTap() }
             }, LinearLayout.LayoutParams(MATCH, WRAP))
         }
-        perm("ERİŞİLEBİLİRLİK HİZMETİ", "Dokunma, kaydırma ve yazmayı PC'den uygular", accessOk()) {
-            Store.toast(this, "ESSENTIAL LITE'I AÇ")
+        perm("ACCESSIBILITY SERVICE", "Applies taps, swipes and typing from the PC", accessOk()) {
+            Store.toast(this, "OPEN ESSENTIAL LITE")
             runCatching { startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) }
         }
-        perm("EKRAN YAKALAMA", "Ekranı PC'ye şifreli akıtır", live) { toggle() }
-        permBox.addView(sectionLabel(this, "● GİZLİLİK").apply { setPadding(0, dp(14), 0, dp(8)) })
+        perm("SCREEN CAPTURE", "Streams the screen to the PC, encrypted", live) { toggle() }
+        permBox.addView(sectionLabel(this, "● PRIVACY").apply { setPadding(0, dp(14), 0, dp(8)) })
         fun opt(k: String, def: Boolean, label: String, sub: String) {
             permBox.addView(View(this).apply { setBackgroundColor(Ui.OFF) }, LinearLayout.LayoutParams(MATCH, 1))
             permBox.addView(LinearLayout(this).apply {
@@ -853,16 +853,16 @@ class LinkControlActivity : BaseActivity() {
                 }, LinearLayout.LayoutParams(0, WRAP, 1f))
                 addView(DesignSwitch(this@LinkControlActivity, Link.feature(this@LinkControlActivity, k, def)) { v ->
                     Link.setFeature(this@LinkControlActivity, k, v)
-                    if (k == "c_dim" && v && !Shot.ready()) Store.toast(this@LinkControlActivity, "KARARTMA İÇİN SHIZUKU GEREKİR")
+                    if (k == "c_dim" && v && !Shot.ready()) Store.toast(this@LinkControlActivity, "SHIZUKU REQUIRED TO DIM")
                     paint()
                 })
             }, LinearLayout.LayoutParams(MATCH, WRAP))
         }
-        opt("c_touch", true, "DOKUNMA VE YAZMA", "Kapalıyken PC sadece izler")
-        opt("c_dim", false, "TELEFON EKRANINI KARART", "Yanındaki biri oturumu görmesin")
-        opt("c_auto", true, "5 DK SONRA OTOMATİK KES", "Unutursan oturum kendiliğinden kapanır")
+        opt("c_touch", true, "TOUCH AND TYPE", "When off, the PC can only watch")
+        opt("c_dim", false, "DIM THE PHONE SCREEN", "So someone next to you can't see the session")
+        opt("c_auto", true, "AUTO-STOP AFTER 5 MIN", "If you forget, the session closes by itself")
 
-        main.text = dot(if (live && LinkControl.watchOnly) "● KONTROLE İZİN VER" else if (live) "● OTURUMU SONLANDIR" else "● KONTROLE İZİN VER", Ui.RED)
+        main.text = dot(if (live && LinkControl.watchOnly) "● ALLOW CONTROL" else if (live) "● END SESSION" else "● ALLOW CONTROL", Ui.RED)
         main.setTextColor(if (live) Ui.RED else Ui.WHITE)
         main.background = Ui.rounded(this, Color.TRANSPARENT, 30f, if (live) Ui.RED else Ui.WHITE)
     }
@@ -871,15 +871,15 @@ class LinkControlActivity : BaseActivity() {
         if (LinkControl.active && LinkControl.watchOnly) {
             // Sadece izleme açıkken "kontrole izin ver": oturum yeniden kurulmadan tam kontrole geçilir.
             if (!accessOk()) {
-                Store.toast(this, "ÖNCE ERİŞİLEBİLİRLİK HİZMETİNİ AÇ")
+                Store.toast(this, "TURN ON ACCESSIBILITY SERVICE FIRST")
                 runCatching { startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) }
             } else { LinkControl.watchOnly = false; Link.setFeature(this, "mirror", false); paint() }
             return
         }
         if (LinkControl.active) { LinkControl.stopAll(); return }
-        if (!Link.live) { Store.toast(this, "ÖNCE PC'YE BAĞLAN"); return }
+        if (!Link.live) { Store.toast(this, "CONNECT TO A PC FIRST"); return }
         if (!accessOk() && Link.feature(this, "c_touch", true)) {
-            Store.toast(this, "ÖNCE ERİŞİLEBİLİRLİK HİZMETİNİ AÇ")
+            Store.toast(this, "TURN ON ACCESSIBILITY SERVICE FIRST")
             runCatching { startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) }
             return
         }

@@ -46,31 +46,31 @@ class OnboardActivity : BaseActivity() {
     private fun assistantOk() = android.provider.Settings.Secure.getString(contentResolver, "assistant")?.contains(packageName) == true
 
     private fun steps(): List<Triple<String, String, () -> Boolean>> = listOf(
-        Triple("SHİZUKU", "Ekran görüntüsü almak için gerekli. Shizuku'yu açıp Başlat'a bas, sonra izin ver.") { shizukuOk() },
-        Triple("ERİŞİLEBİLİRLİK", "Ses tuşlarıyla hızlı erişim paneli için. Essential Lite'ı açman yeterli.") { accessOk() },
-        Triple("ÜZERİNDE GÖSTER", "Panelin başka uygulamaların üstünde açılması için.") { overlayOk() },
-        Triple("MİKROFON", "Ses kaydı için.") { micOk() },
-        Triple("BİLDİRİM", "Hatırlatıcıların zamanında çalması için.") { notifOk() },
-        Triple("ASİSTAN", "İsteğe bağlı. Güç tuşuna uzun basınca hızlı erişim paneli açılsın.") { assistantOk() }
+        Triple("SHIZUKU", "Needed to take screenshots. Open Shizuku, tap Start, then grant permission.") { shizukuOk() },
+        Triple("ACCESSIBILITY", "For the volume-key quick-access panel. Just opening Essential Lite is enough.") { accessOk() },
+        Triple("DISPLAY OVER APPS", "So the panel can open over other apps.") { overlayOk() },
+        Triple("MICROPHONE", "For voice memos.") { micOk() },
+        Triple("NOTIFICATION", "So reminders ring on time.") { notifOk() },
+        Triple("ASSISTANT", "Optional. Long-press the power button to open the quick-access panel.") { assistantOk() }
     )
 
     private fun render() {
         content.removeAllViews()
         content.setPadding(dp(20), dp(44), dp(20), dp(32))
         content.addView(Ui.brand(this), LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT))
-        content.addView(Ui.kindLabel(this, "KURULUM").apply { setPadding(0, dp(28), 0, 0) })
-        content.addView(Ui.text(this, "Birkaç izin ve ayar. Hepsi isteğe bağlı, ama ekran görüntüsü için Shizuku şart.", 12f, Ui.GREY2).apply {
+        content.addView(Ui.kindLabel(this, "SETUP").apply { setPadding(0, dp(28), 0, 0) })
+        content.addView(Ui.text(this, "A few permissions and settings. All optional, but screenshots need Shizuku.", 12f, Ui.GREY2).apply {
             setLineSpacing(0f, 1.3f)
             setPadding(0, dp(10), 0, dp(20))
         })
         val all = steps()
         all.forEachIndexed { i, (title, sub, ok) -> content.addView(stepCard(i + 1, title, sub, ok())) }
         val done = all.count { it.third() }
-        content.addView(Ui.text(this, "$done / ${all.size} tamam", 11f, Ui.GREY).apply {
+        content.addView(Ui.text(this, "$done / ${all.size} done", 11f, Ui.GREY).apply {
             letterSpacing = 0.14f
             setPadding(0, dp(18), 0, dp(14))
         })
-        content.addView(Ui.pill(this, if (done == all.size) "BİTİR" else "ŞİMDİLİK GEÇ") { finishOnboarding() },
+        content.addView(Ui.pill(this, if (done == all.size) "FINISH" else "SKIP FOR NOW") { finishOnboarding() },
             LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
     }
 
@@ -85,14 +85,14 @@ class OnboardActivity : BaseActivity() {
                 addView(Ui.text(this@OnboardActivity, "%02d".format(n), 13f, Ui.GREY, bold = true),
                     LinearLayout.LayoutParams(dp(34), LinearLayout.LayoutParams.WRAP_CONTENT))
                 addView(Ui.kindLabel(this@OnboardActivity, title), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
-                addView(Ui.text(this@OnboardActivity, if (ok) "TAMAM" else "BEKLİYOR", 10f, if (ok) Ui.WHITE else Ui.RED, bold = true)
+                addView(Ui.text(this@OnboardActivity, if (ok) "OK" else "WAITING", 10f, if (ok) Ui.WHITE else Ui.RED, bold = true)
                     .apply { letterSpacing = 0.14f })
             })
             addView(Ui.text(this@OnboardActivity, sub, 12f, Ui.GREY2).apply {
                 setLineSpacing(0f, 1.25f)
                 setPadding(dp(34), dp(8), 0, 0)
             })
-            if (!ok) addView(Ui.text(this@OnboardActivity, "AÇ", 11f, Ui.WHITE, bold = true).apply {
+            if (!ok) addView(Ui.text(this@OnboardActivity, "OPEN", 11f, Ui.WHITE, bold = true).apply {
                 letterSpacing = 0.16f
                 gravity = Gravity.CENTER
                 background = Ui.rounded(this@OnboardActivity, Color.TRANSPARENT, 20f, Ui.LINE)
@@ -108,16 +108,16 @@ class OnboardActivity : BaseActivity() {
 
     private fun act(title: String) {
         when (title) {
-            "SHİZUKU" -> {
+            "SHIZUKU" -> {
                 val launch = packageManager.getLaunchIntentForPackage("moe.shizuku.privileged.api")
                 if (launch != null) startActivity(launch)
-                else Store.toast(this, "SHİZUKU KURULU DEĞİL")
+                else Store.toast(this, "SHIZUKU NOT INSTALLED")
             }
-            "ERİŞİLEBİLİRLİK" -> startActivity(Intent(AndroidSettings.ACTION_ACCESSIBILITY_SETTINGS))
-            "ÜZERİNDE GÖSTER" -> startActivity(Intent(AndroidSettings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName")))
-            "MİKROFON" -> requestPermissions(arrayOf(Manifest.permission.RECORD_AUDIO), 11)
-            "BİLDİRİM" -> if (Build.VERSION.SDK_INT >= 33) requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 12)
-            "ASİSTAN" -> try { startActivity(Intent("android.settings.VOICE_INPUT_SETTINGS")) } catch (e: Throwable) { startActivity(Intent(AndroidSettings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS)) }
+            "ACCESSIBILITY" -> startActivity(Intent(AndroidSettings.ACTION_ACCESSIBILITY_SETTINGS))
+            "DISPLAY OVER APPS" -> startActivity(Intent(AndroidSettings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName")))
+            "MICROPHONE" -> requestPermissions(arrayOf(Manifest.permission.RECORD_AUDIO), 11)
+            "NOTIFICATION" -> if (Build.VERSION.SDK_INT >= 33) requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 12)
+            "ASSISTANT" -> try { startActivity(Intent("android.settings.VOICE_INPUT_SETTINGS")) } catch (e: Throwable) { startActivity(Intent(AndroidSettings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS)) }
         }
     }
 

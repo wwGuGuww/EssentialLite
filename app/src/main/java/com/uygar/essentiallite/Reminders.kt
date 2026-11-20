@@ -23,12 +23,22 @@ object Reminders {
         "pazar" to Calendar.SUNDAY
     )
 
+    private val DAYS_EN = mapOf(
+        "monday" to Calendar.MONDAY, "tuesday" to Calendar.TUESDAY, "wednesday" to Calendar.WEDNESDAY,
+        "thursday" to Calendar.THURSDAY, "friday" to Calendar.FRIDAY, "saturday" to Calendar.SATURDAY,
+        "sunday" to Calendar.SUNDAY
+    )
+
     /**
+     * Finds a date/time in text, English and Turkish: "tomorrow 3pm", "monday", "10.11 14:30", "in 3 days",
+     * "in 2 hours", "tonight", "morning" (Turkish: "yarın 15:00", "3 gün sonra", "akşam").
+     * Returns the future time in ms, or null when nothing is found.
      * Metinde tarih/saat arar: "yarın 15:00", "pazartesi", "10.11 14:30", "3 gün sonra", "2 saat sonra",
      * "akşam", "sabah". Bulursa gelecekteki zamanı (ms), bulamazsa null döner.
      */
     fun parse(text: String, now: Long = System.currentTimeMillis()): Long? {
         val t = text.lowercase(Locale("tr"))
+        val te = text.lowercase(Locale.ROOT)
         val cal = Calendar.getInstance().apply { timeInMillis = now; set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0) }
         var dateFound = false
         var hour = -1
@@ -42,6 +52,16 @@ object Reminders {
                 "saat" -> return now + n * 3_600_000L
                 "gün" -> { cal.add(Calendar.DAY_OF_YEAR, n); dateFound = true }
                 "hafta" -> { cal.add(Calendar.DAY_OF_YEAR, 7 * n); dateFound = true }
+            }
+        }
+        if (!dateFound) Regex("""\bin\s+(\d{1,3})\s*(minutes?|mins?|hours?|hrs?|days?|weeks?)\b""").find(te)?.let {
+            val n = it.groupValues[1].toInt()
+            val u = it.groupValues[2]
+            when {
+                u.startsWith("min") -> return now + n * 60_000L
+                u.startsWith("h") -> return now + n * 3_600_000L
+                u.startsWith("d") -> { cal.add(Calendar.DAY_OF_YEAR, n); dateFound = true }
+                else -> { cal.add(Calendar.DAY_OF_YEAR, 7 * n); dateFound = true }
             }
         }
         // Açık tarih: 10.11, 10/11, 10.11.2026
@@ -61,11 +81,26 @@ object Reminders {
                 "yarın" in t -> { cal.add(Calendar.DAY_OF_YEAR, 1); dateFound = true }
                 "bugün" in t || "bu akşam" in t || "bu sabah" in t -> dateFound = true
                 "haftaya" in t -> { cal.add(Calendar.DAY_OF_YEAR, 7); dateFound = true }
+                "day after tomorrow" in te -> { cal.add(Calendar.DAY_OF_YEAR, 2); dateFound = true }
+                "tomorrow" in te -> { cal.add(Calendar.DAY_OF_YEAR, 1); dateFound = true }
+                "next week" in te -> { cal.add(Calendar.DAY_OF_YEAR, 7); dateFound = true }
+                "today" in te || "tonight" in te || "this evening" in te || "this morning" in te -> dateFound = true
             }
         }
         if (!dateFound) {
             for ((name, dow) in DAYS) {
                 if (Regex("""\b$name\b""").containsMatchIn(t) || Regex("""\b$name(ya|ye|da|de|ye kadar)\b""").containsMatchIn(t)) {
+                    var add = (dow - cal.get(Calendar.DAY_OF_WEEK) + 7) % 7
+                    if (add == 0) add = 7
+                    cal.add(Calendar.DAY_OF_YEAR, add)
+                    dateFound = true
+                    break
+                }
+            }
+        }
+        if (!dateFound) {
+            for ((name, dow) in DAYS_EN) {
+                if (Regex("""\b$name\b""").containsMatchIn(te)) {
                     var add = (dow - cal.get(Calendar.DAY_OF_WEEK) + 7) % 7
                     if (add == 0) add = 7
                     cal.add(Calendar.DAY_OF_YEAR, add)
@@ -87,8 +122,23 @@ object Reminders {
             val h = it.groupValues[1].toInt()
             if (h in 0..23) { hour = h; minute = 0 }
         }
+        if (hour == -1) Regex("""\b(1[0-2]|0?[1-9])(?::([0-5]\d))?\s*(am|pm)\b""").find(te)?.let {
+            var h = it.groupValues[1].toInt() % 12
+            if (it.groupValues[3] == "pm") h += 12
+            hour = h; minute = it.groupValues[2].ifEmpty { "0" }.toInt()
+        }
+        if (hour == -1) Regex("""\bat\s*(\d{1,2})\b""").find(te)?.let {
+            val h = it.groupValues[1].toInt()
+            if (h in 0..23) { hour = h; minute = 0 }
+        }
         if (hour == -1) {
             when {
+                "afternoon" in te -> hour = 15
+                "noon" in te -> hour = 12
+                "tonight" in te -> hour = 21
+                "evening" in te -> hour = 19
+                "night" in te -> hour = 22
+                "morning" in te -> hour = 9
                 "öğleden sonra" in t -> hour = 15
                 "öğle" in t -> hour = 12
                 "akşam" in t -> hour = 19
@@ -136,9 +186,9 @@ object Reminders {
 
     internal fun notify(ctx: Context, f: File) {
         val nm = ctx.getSystemService(NotificationManager::class.java)
-        nm.createNotificationChannel(NotificationChannel(CHANNEL, "Hatırlatıcılar", NotificationManager.IMPORTANCE_HIGH))
+        nm.createNotificationChannel(NotificationChannel(CHANNEL, "Reminders", NotificationManager.IMPORTANCE_HIGH))
         val entry = Store.all(ctx).firstOrNull { it.file.path == f.path }
-        val body = entry?.title?.takeIf { it.isNotBlank() } ?: entry?.preview?.takeIf { it.isNotBlank() } ?: "Not hatırlatıcısı"
+        val body = entry?.title?.takeIf { it.isNotBlank() } ?: entry?.preview?.takeIf { it.isNotBlank() } ?: "Note reminder"
         val open = PendingIntent.getActivity(
             ctx, f.nameWithoutExtension.hashCode(),
             Intent(ctx, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
@@ -151,9 +201,9 @@ object Reminders {
             .setStyle(Notification.BigTextStyle().bigText(body))
             .setContentIntent(open)
             .setAutoCancel(true)
-            .addAction(snoozeAction(ctx, f, 10, "10 DK"))
-            .addAction(snoozeAction(ctx, f, 60, "1 SAAT"))
-            .addAction(snoozeAction(ctx, f, -1, "YARIN"))
+            .addAction(snoozeAction(ctx, f, 10, "10 MIN"))
+            .addAction(snoozeAction(ctx, f, 60, "1 HOUR"))
+            .addAction(snoozeAction(ctx, f, -1, "TOMORROW"))
             .build()
         nm.notify(f.nameWithoutExtension.hashCode(), n)
     }
@@ -198,7 +248,7 @@ class ReminderReceiver : BroadcastReceiver() {
             nm.cancel(f.nameWithoutExtension.hashCode())
             val minutes = intent.getIntExtra("min", 10)
             Reminders.set(ctx, f, Reminders.snoozeTime(minutes))
-            Store.toast(ctx, "ERTELENDİ: ${Store.stamp(Reminders.snoozeTime(minutes))}")
+            Store.toast(ctx, "SNOOZED: ${Store.stamp(Reminders.snoozeTime(minutes))}")
             return
         }
         Reminders.notify(ctx, f)

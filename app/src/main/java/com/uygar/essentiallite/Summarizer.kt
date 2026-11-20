@@ -34,15 +34,15 @@ object Summarizer {
     }
 
     fun summarize(apiKey: String, text: String): String {
-        val prompt = "Aşağıdaki notu Türkçe, en fazla 5 kısa madde ile özetle. Notta olmayan bilgi ekleme.\n\n$text"
+        val prompt = "Summarize the note below in English in at most 5 short bullet points. Don't add information that isn't in the note.\n\n$text"
         return generate(apiKey, prompt, 400, false)
     }
 
     /** Ekran görüntüsünden okunan metne kısa bir başlık ve küçük harfli etiketler üretir. */
     fun tag(apiKey: String, ocrText: String): Pair<String, List<String>> {
-        val prompt = "Aşağıdaki metin bir ekran görüntüsünden okundu. Türkçe, en fazla 6 kelimelik bir başlık ve " +
-            "en fazla 4 adet tek kelimelik küçük harfli etiket üret. Metinde olmayan bilgi ekleme. " +
-            "Yalnızca şu JSON'u ver: {\"title\":\"...\",\"tags\":[\"...\"]}\n\n" + ocrText.take(3000)
+        val prompt = "The text below was read from a screenshot. Give a title of at most 6 words and" +
+            "up to 4 single-word lowercase tags. Don't add information that isn't in the text." +
+            "Reply with only this JSON: {\"title\":\"...\",\"tags\":[\"...\"]}\n\n" + ocrText.take(3000)
         val raw = generate(apiKey, prompt, 200, true)
         val j = JSONObject(raw.trim().removePrefix("```json").removePrefix("```").removeSuffix("```").trim())
         val tags = j.optJSONArray("tags")
@@ -83,7 +83,7 @@ object Summarizer {
             for (i in 0 until parts.length()) {
                 sb.append(parts.getJSONObject(i).optString("text"))
             }
-            return sb.toString().trim().ifEmpty { throw IllegalStateException("Boş yanıt") }
+            return sb.toString().trim().ifEmpty { throw IllegalStateException("Empty response") }
         } finally {
             conn.disconnect()
         }

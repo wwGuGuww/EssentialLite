@@ -223,8 +223,8 @@ class LevelActivity : BaseActivity(), SensorEventListener {
             addView(bars, LinearLayout.LayoutParams(0, dp(8), 1f))
         }
 
-        val calibrate = outlineBtn(this, "KALİBRE ET", true, Ui.WHITE, Ui.WHITE) { cx = rx; cy = ry; update() }
-        val reset = outlineBtn(this, "SIFIRLA", false, Ui.LINE, Ui.GREY) { cx = 0f; cy = 0f; update() }
+        val calibrate = outlineBtn(this, "CALIBRATE", true, Ui.WHITE, Ui.WHITE) { cx = rx; cy = ry; update() }
+        val reset = outlineBtn(this, "RESET", false, Ui.LINE, Ui.GREY) { cx = 0f; cy = 0f; update() }
 
         val body = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -239,29 +239,29 @@ class LevelActivity : BaseActivity(), SensorEventListener {
                 addView(reset, LinearLayout.LayoutParams(dp(120), dp(56)))
             }, LinearLayout.LayoutParams(MATCH, WRAP).apply { setMargins(0, dp(16), 0, 0) })
         }
-        stateView = ToolUi.screen(this, "SU TERAZİSİ", "EĞİK", ScrollView(this).apply {
+        stateView = ToolUi.screen(this, "SPIRIT LEVEL", "TILTED", ScrollView(this).apply {
             isFillViewport = true
             isVerticalScrollBarEnabled = false
             addView(body)
         })
         if (sm.getDefaultSensor(Sensor.TYPE_ACCELEROMETER) == null) {
-            stateView.text = "SENSÖR YOK"
+            stateView.text = "NO SENSOR"
         }
         update()
     }
 
-    private fun fmt(v: Float) = (if (v >= 0f) "+" else "−") + String.format(java.util.Locale.US, "%.1f", abs(v)).replace('.', ',')
+    private fun fmt(v: Float) = (if (v >= 0f) "+" else "−") + String.format(java.util.Locale.US, "%.1f", abs(v))
 
     private fun update() {
         val x = rx - cx
         val y = ry - cy
         val level = hypot(x, y) < 0.6f
-        totalView.text = String.format(java.util.Locale.US, "%.1f", hypot(x, y)).replace('.', ',')
+        totalView.text = String.format(java.util.Locale.US, "%.1f", hypot(x, y))
         totalView.setTextColor(if (level) Ui.RED else Ui.WHITE)
         axView.text = fmt(x) + "°"
         ayView.text = fmt(y) + "°"
         if (sm.getDefaultSensor(Sensor.TYPE_ACCELEROMETER) != null) {
-            stateView.text = if (level) "● DÜZ" else "EĞİK"
+            stateView.text = if (level) "● FLAT" else "TILTED"
             stateView.setTextColor(if (level) Ui.WHITE else Ui.GREY)
         }
         field.bx = x * 0.55f
@@ -380,10 +380,10 @@ object BatteryWatch {
         if (!limitOn(ctx) || s.level < LIMIT || Prefs.get(ctx, "batt_notified", false)) return
         Prefs.set(ctx, "batt_notified", true)
         val nm = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        if (Build.VERSION.SDK_INT >= 26) nm.createNotificationChannel(NotificationChannel(CHANNEL, "Pil", NotificationManager.IMPORTANCE_DEFAULT))
+        if (Build.VERSION.SDK_INT >= 26) nm.createNotificationChannel(NotificationChannel(CHANNEL, "Battery", NotificationManager.IMPORTANCE_DEFAULT))
         val n = if (Build.VERSION.SDK_INT >= 26) Notification.Builder(ctx, CHANNEL) else @Suppress("DEPRECATION") Notification.Builder(ctx)
         runCatching {
-            nm.notify(NOTE_ID, n.setSmallIcon(R.drawable.ic_notif).setContentTitle("ŞARJ %$LIMIT").setContentText("Pil %${s.level}. Şarjı kesme zamanı.").setAutoCancel(true).build())
+            nm.notify(NOTE_ID, n.setSmallIcon(R.drawable.ic_notif).setContentTitle("CHARGE $LIMIT%").setContentText("Battery ${s.level}%. Time to stop charging.").setAutoCancel(true).build())
         }
     }
 }
@@ -442,12 +442,12 @@ class BatteryActivity : BaseActivity() {
         BatteryWatch.schedule(this)
         content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         snap = BatteryWatch.snapshot(this)
-        val right = ToolUi.screen(this, "PİL", "", ScrollView(this).apply {
+        val right = ToolUi.screen(this, "BATTERY", "", ScrollView(this).apply {
             isFillViewport = true
             isVerticalScrollBarEnabled = false
             addView(content)
         })
-        right.text = if (snap.charging) "⚡ ŞARJ OLUYOR" else "ŞARJ OLMUYOR"
+        right.text = if (snap.charging) "⚡ CHARGING" else "NOT CHARGING"
         right.setTextColor(if (snap.charging) Ui.WHITE else Ui.GREY)
         right.textSize = 11f
         build()
@@ -477,7 +477,7 @@ class BatteryActivity : BaseActivity() {
             addView(LinearLayout(this@BatteryActivity).apply {
                 orientation = LinearLayout.VERTICAL
                 gravity = Gravity.END
-                addView(Ui.text(this@BatteryActivity, if (s.charging) "DOLMAYA" else "KALAN", 11f, Ui.GREY).apply { letterSpacing = 0.12f })
+                addView(Ui.text(this@BatteryActivity, if (s.charging) "TO FULL" else "LEFT", 11f, Ui.GREY).apply { letterSpacing = 0.12f })
                 addView(Ui.text(this@BatteryActivity, remainText(s.remainMin), 11f, Ui.WHITE).apply { letterSpacing = 0.12f })
             })
         }, LinearLayout.LayoutParams(MATCH, WRAP))
@@ -490,15 +490,15 @@ class BatteryActivity : BaseActivity() {
         }
         val healthLabel = when {
             health == null -> "—"
-            health >= 80 -> "İYİ"
-            health >= 60 -> "ORTA"
-            else -> "ZAYIF"
+            health >= 80 -> "GOOD"
+            health >= 60 -> "MEDIUM"
+            else -> "WEAK"
         }
         val stats = listOf(
-            "KAPASİTE" to if (s.fullMah != null && s.designMah != null) "${spaced(s.fullMah.roundToInt().toLong())} / ${spaced(s.designMah.roundToInt().toLong())}" else "—",
-            "ŞARJ DÖNGÜSÜ" to if (s.cycles >= 0) s.cycles.toString() else "—",
-            "SICAKLIK" to String.format(java.util.Locale.US, "%.1f", s.tempC).replace('.', ',') + "°C",
-            "VOLTAJ" to String.format(java.util.Locale.US, "%.2f", s.volt).replace('.', ',') + " V"
+            "CAPACITY" to if (s.fullMah != null && s.designMah != null) "${spaced(s.fullMah.roundToInt().toLong())} / ${spaced(s.designMah.roundToInt().toLong())}" else "—",
+            "CHARGE CYCLES" to if (s.cycles >= 0) s.cycles.toString() else "—",
+            "TEMPERATURE" to String.format(java.util.Locale.US, "%.1f", s.tempC) + "°C",
+            "VOLTAGE" to String.format(java.util.Locale.US, "%.2f", s.volt) + " V"
         )
         val statGrid = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -525,7 +525,7 @@ class BatteryActivity : BaseActivity() {
                 gravity = Gravity.BOTTOM
                 addView(LinearLayout(this@BatteryActivity).apply {
                     orientation = LinearLayout.VERTICAL
-                    addView(Ui.text(this@BatteryActivity, "PİL SAĞLIĞI", 10f, Ui.GREY).apply { letterSpacing = 0.18f })
+                    addView(Ui.text(this@BatteryActivity, "BATTERY HEALTH", 10f, Ui.GREY).apply { letterSpacing = 0.18f })
                     addView(LinearLayout(this@BatteryActivity).apply {
                         orientation = LinearLayout.HORIZONTAL
                         gravity = Gravity.BOTTOM
@@ -553,7 +553,7 @@ class BatteryActivity : BaseActivity() {
         content.addView(View(this).apply { setBackgroundColor(Ui.BORDER) }, LinearLayout.LayoutParams(MATCH, dp(1)).apply { setMargins(0, dp(14), 0, 0) })
         val note = Ui.text(this, "", 10f, Ui.GREY).apply { letterSpacing = 0.08f; setLineSpacing(0f, 1.2f) }
         fun refreshNote() {
-            note.text = if (limit) "%80'e gelince bildirim gelir. Şarjı sen kesersin." else "Kapalı. Bildirim gelmez."
+            note.text = if (limit) "You get a notification at 80%. You decide when to stop charging." else "Off. No notifications."
         }
         refreshNote()
         content.addView(LinearLayout(this).apply {
@@ -562,7 +562,7 @@ class BatteryActivity : BaseActivity() {
             setPadding(0, dp(10), 0, 0)
             addView(LinearLayout(this@BatteryActivity).apply {
                 orientation = LinearLayout.VERTICAL
-                addView(Ui.text(this@BatteryActivity, "ŞARJ SINIRI · %80", 12f, Ui.WHITE, bold = true).apply { letterSpacing = 0.1f })
+                addView(Ui.text(this@BatteryActivity, "CHARGE LIMIT · 80%", 12f, Ui.WHITE, bold = true).apply { letterSpacing = 0.1f })
                 addView(note, LinearLayout.LayoutParams(WRAP, WRAP).apply { setMargins(0, dp(6), 0, 0) })
             }, LinearLayout.LayoutParams(0, WRAP, 1f))
             addView(DesignSwitch(this@BatteryActivity, limit) { on ->
@@ -600,7 +600,7 @@ class BatteryActivity : BaseActivity() {
             orientation = LinearLayout.HORIZONTAL
             background = Ui.rounded(this@BatteryActivity, Color.TRANSPARENT, 20f, Ui.LINE)
             clipToOutline = true
-            listOf("24 SA" to 0, "7 GÜN" to 1).forEach { (label, idx) ->
+            listOf("24 H" to 0, "7 DAYS" to 1).forEach { (label, idx) ->
                 val sel = range == idx
                 addView(Ui.text(this@BatteryActivity, label, 10.5f, if (sel) Ui.WHITE else Ui.GREY, bold = true).apply {
                     gravity = Gravity.CENTER
@@ -616,15 +616,15 @@ class BatteryActivity : BaseActivity() {
             addView(LinearLayout(this@BatteryActivity).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER_VERTICAL
-                addView(Ui.text(this@BatteryActivity, "ŞARJ GEÇMİŞİ", 10f, Ui.GREY).apply { letterSpacing = 0.18f }, LinearLayout.LayoutParams(0, WRAP, 1f))
+                addView(Ui.text(this@BatteryActivity, "CHARGE HISTORY", 10f, Ui.GREY).apply { letterSpacing = 0.18f }, LinearLayout.LayoutParams(0, WRAP, 1f))
                 addView(seg)
             }, LinearLayout.LayoutParams(MATCH, WRAP).apply { setMargins(0, 0, 0, dp(10)) })
             addView(dots, LinearLayout.LayoutParams(MATCH, dp(rows * 4)))
             addView(LinearLayout(this@BatteryActivity).apply {
                 orientation = LinearLayout.HORIZONTAL
-                val l = if (range == 0) "−24 SA" else "−7 GÜN"
-                val m = if (range == 0) "−12 SA" else "−3 GÜN"
-                for ((i, t) in listOf(l, m, "ŞİMDİ").withIndex()) {
+                val l = if (range == 0) "−24 H" else "−7 DAYS"
+                val m = if (range == 0) "−12 H" else "−3 DAYS"
+                for ((i, t) in listOf(l, m, "NOW").withIndex()) {
                     addView(Ui.text(this@BatteryActivity, t, 10f, Ui.PROG).apply {
                         letterSpacing = 0.14f
                         gravity = if (i == 0) Gravity.START else if (i == 1) Gravity.CENTER_HORIZONTAL else Gravity.END

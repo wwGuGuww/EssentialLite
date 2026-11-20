@@ -19,7 +19,7 @@ class ShareReceiveActivity : Activity() {
                 Intent.ACTION_SEND -> handleSend(source)
             }
         } catch (e: Throwable) {
-            Store.toast(this, "KAYDEDİLEMEDİ")
+            Store.toast(this, "COULDN'T SAVE")
         }
         finish()
     }
@@ -38,7 +38,7 @@ class ShareReceiveActivity : Activity() {
                 target.outputStream().use { input.copyTo(it) }
             }
             Store.saveMeta(target, source)
-            Store.toast(this, "GÖRSEL KAYDEDİLDİ")
+            Store.toast(this, "IMAGE SAVED")
             val app0 = applicationContext
             Thread { Ocr.afterSave(app0, target) }.start()
         } else {
@@ -48,7 +48,7 @@ class ShareReceiveActivity : Activity() {
                 target.writeText(text)
                 LinkTitle.attach(this, target, text)
                 Store.saveMeta(target, source)
-                Store.toast(this, "METİN KAYDEDİLDİ")
+                Store.toast(this, "TEXT SAVED")
             }
         }
         val app = applicationContext

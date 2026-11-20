@@ -12,7 +12,7 @@ import android.provider.CalendarContract
  * Hepsi telefonda, regex ile çalışır; ağ gerektirmez. Dokununca ilgili uygulama açılır ya da metin kopyalanır.
  */
 object Entities {
-    enum class Kind(val label: String) { PHONE("ARA"), IBAN("KOPYALA"), DATE("TAKVİM"), TRACK("KOPYALA"), URL("AÇ"), MAIL("YAZ"), PLACE("HARİTA") }
+    enum class Kind(val label: String) { PHONE("CALL"), IBAN("COPY"), DATE("CALENDAR"), TRACK("COPY"), URL("OPEN"), MAIL("EMAIL"), PLACE("MAP") }
 
     data class Found(val kind: Kind, val text: String, val chip: String)
 
@@ -23,35 +23,35 @@ object Entities {
     private val track = Regex("""\b[A-Z]{2}\d{9}[A-Z]{2}\b|\b\d{10,16}\b""")
     private val url = Regex("""(?:https?://|www\.)[^\s]+""", RegexOption.IGNORE_CASE)
     private val mail = Regex("""[\w.+-]+@[\w-]+\.[\w.]+""")
-    private val place = Regex("""(?i)\b(?:mah\.?|mahalle|cad\.?|caddesi|sok\.?|sokak|bulvar[ıi]?|no:\s?\d+)\b""")
+    private val place = Regex("""(?i)\b(?:mah\.?|mahalle|cad\.?|caddesi|sok\.?|sokak|bulvar[ıi]?|no:\s?\d+|street|avenue|boulevard|blvd)\b""")
 
     fun find(text: String): List<Found> {
         if (text.isBlank()) return emptyList()
         val out = mutableListOf<Found>()
         phone.findAll(text).map { it.value.trim() }.distinct().take(2).forEach {
-            out += Found(Kind.PHONE, it.replace(Regex("""[^\d+]"""), ""), "ARA · ${it.take(14)}")
+            out += Found(Kind.PHONE, it.replace(Regex("""[^\d+]"""), ""), "CALL · ${it.take(14)}")
         }
         iban.findAll(text).map { it.value.replace(" ", "") }.distinct().take(2).forEach {
-            out += Found(Kind.IBAN, it, "IBAN KOPYALA")
+            out += Found(Kind.IBAN, it, "COPY IBAN")
         }
         date.findAll(text).distinct().take(2).forEach { m ->
-            out += Found(Kind.DATE, m.value, "TAKVİME EKLE · ${m.value}")
+            out += Found(Kind.DATE, m.value, "ADD TO CALENDAR · ${m.value}")
         }
         // Takip numarası: yalnızca "kargo/takip/sipariş" geçen metinlerde ara; rastgele uzun sayıları yakalamaz.
-        if (Regex("""(?i)kargo|takip|sipariş|gönderi""").containsMatchIn(text)) {
+        if (Regex("""(?i)kargo|takip|sipariş|gönderi|tracking|shipment|parcel|delivery|order""").containsMatchIn(text)) {
             track.findAll(text).map { it.value }.distinct().take(2).forEach {
-                out += Found(Kind.TRACK, it, "TAKİP · KOPYALA")
+                out += Found(Kind.TRACK, it, "TRACKING · COPY")
             }
         }
         url.findAll(text).map { it.value.trimEnd('.', ',') }.distinct().take(2).forEach {
-            out += Found(Kind.URL, it, "AÇ · ${it.take(22)}")
+            out += Found(Kind.URL, it, "OPEN · ${it.take(22)}")
         }
         mail.findAll(text).map { it.value }.distinct().take(1).forEach {
-            out += Found(Kind.MAIL, it, "E-POSTA · $it")
+            out += Found(Kind.MAIL, it, "EMAIL · $it")
         }
         if (place.containsMatchIn(text)) {
             val line = text.lineSequence().firstOrNull { place.containsMatchIn(it) }?.trim().orEmpty()
-            if (line.isNotEmpty()) out += Found(Kind.PLACE, line, "HARİTADA AÇ")
+            if (line.isNotEmpty()) out += Found(Kind.PLACE, line, "OPEN IN MAPS")
         }
         return out.take(6)
     }
@@ -70,7 +70,7 @@ object Entities {
 
     private fun copy(ctx: Context, s: String) {
         (ctx.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager).setPrimaryClip(ClipData.newPlainText("EL", s))
-        Store.toast(ctx, "KOPYALANDI")
+        Store.toast(ctx, "COPIED")
     }
 
     private fun calendar(ctx: Context, d: String) {
@@ -81,7 +81,7 @@ object Entities {
         }
         ctx.startActivity(Intent(Intent.ACTION_INSERT).setData(CalendarContract.Events.CONTENT_URI)
             .putExtra(CalendarContract.EXTRA_EVENT_BEGIN_TIME, cal.timeInMillis)
-            .putExtra(CalendarContract.Events.TITLE, "Essential Lite notu")
+            .putExtra(CalendarContract.Events.TITLE, "Essential Lite note")
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     }
 }

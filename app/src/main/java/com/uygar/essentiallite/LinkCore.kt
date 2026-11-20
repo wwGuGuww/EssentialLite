@@ -164,14 +164,14 @@ object Link {
                 val inp = DataInputStream(s.getInputStream())
                 while (my == epoch) {
                     val len = inp.readInt()
-                    if (len < 28 || len > 64 * 1024 * 1024) throw java.io.IOException("kötü çerçeve")
+                    if (len < 28 || len > 64 * 1024 * 1024) throw java.io.IOException("bad frame")
                     val body = ByteArray(len)
                     inp.readFully(body)
                     handle(ctx.applicationContext, open(body), my)
                 }
             } catch (e: Exception) {
                 if (my == epoch) {
-                    note = if (st == St.CONNECTING) "PC'YE ULAŞILAMADI" else ""
+                    note = if (st == St.CONNECTING) "COULDN'T REACH PC" else ""
                     dropped(my)
                 }
             }
@@ -314,13 +314,13 @@ object Link {
         val f = synchronized(incoming) { incoming.remove(m.optString("id")) } ?: return
         runCatching { f.os.close() }
         ctx.contentResolver.update(f.uri, ContentValues().apply { put(MediaStore.Downloads.IS_PENDING, 0) }, null, null)
-        addRecent(ctx, Transfer(f.name, sizeText(f.size) + " · İNDİRİLENLER/ESSENTIALLITE", System.currentTimeMillis(), false))
-        LinkService.notify(ctx, "DOSYA GELDİ", f.name)
+        addRecent(ctx, Transfer(f.name, sizeText(f.size) + "· DOWNLOADS/ESSENTIALLITE", System.currentTimeMillis(), false))
+        LinkService.notify(ctx, "FILE RECEIVED", f.name)
         changed()
     }
 
     fun sizeText(n: Long): String = when {
-        n >= 1024 * 1024 -> String.format(java.util.Locale.US, "%.1f MB", n / 1048576.0).replace('.', ',')
+        n >= 1024 * 1024 -> String.format(java.util.Locale.US, "%.1f MB", n / 1048576.0)
         n >= 1024 -> "${n / 1024} KB"
         else -> "$n B"
     }
@@ -375,7 +375,7 @@ class LinkService : Service() {
         fun channel(ctx: Context) {
             val nm = ctx.getSystemService(NotificationManager::class.java)
             if (nm.getNotificationChannel(CH) == null)
-                nm.createNotificationChannel(NotificationChannel(CH, "PC bağlantısı", NotificationManager.IMPORTANCE_LOW))
+                nm.createNotificationChannel(NotificationChannel(CH, "PC link", NotificationManager.IMPORTANCE_LOW))
         }
 
         fun notify(ctx: Context, title: String, text: String) {
@@ -413,11 +413,11 @@ class LinkService : Service() {
         val stop = PendingIntent.getBroadcast(this, 1, Intent(this, LinkStopReceiver::class.java), PendingIntent.FLAG_IMMUTABLE)
         val n = Notification.Builder(this, CH)
             .setSmallIcon(android.R.drawable.stat_notify_sync)
-            .setContentTitle("PC BAĞLANTISI")
-            .setContentText(if (Link.pcName.isNotEmpty()) "${Link.pcName} · şifreli" else "Bağlanıyor…")
+            .setContentTitle("PC LINK")
+            .setContentText(if (Link.pcName.isNotEmpty()) "${Link.pcName} · encrypted" else "Connecting…")
             .setContentIntent(pi)
             .setOngoing(true)
-            .addAction(Notification.Action.Builder(null, "KES", stop).build())
+            .addAction(Notification.Action.Builder(null, "STOP", stop).build())
             .build()
         if (Build.VERSION.SDK_INT >= 34) startForeground(ID, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
         else startForeground(ID, n)
@@ -469,7 +469,7 @@ class LinkNotif : NotificationListenerService() {
         val label = runCatching { packageManager.getApplicationLabel(packageManager.getApplicationInfo(sbn.packageName, 0)).toString() }.getOrDefault(sbn.packageName)
         val act = n.actions?.firstOrNull { a -> a.remoteInputs?.isNotEmpty() == true }
         if (act != null) replies[sbn.key] = act else replies.remove(sbn.key)
-        Link.send("t" to "notif", "id" to sbn.key, "app" to label.uppercase(java.util.Locale("tr")), "who" to title, "text" to text,
+        Link.send("t" to "notif", "id" to sbn.key, "app" to label.uppercase(java.util.Locale.ENGLISH), "who" to title, "text" to text,
             "time" to Store.clock(sbn.postTime), "canReply" to (act != null))
     }
 

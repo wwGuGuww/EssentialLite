@@ -67,16 +67,16 @@ class SettingsActivity : BaseActivity() {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             addView(Ui.text(this@SettingsActivity, "‹", 18f).apply {
-                contentDescription = "Geri"
+                contentDescription = "Back"
                 setPadding(0, 0, dp(14), 0)
                 setOnClickListener { finish() }
             })
-            addView(Ui.kindLabel(this@SettingsActivity, "AYARLAR"),
+            addView(Ui.kindLabel(this@SettingsActivity, "SETTINGS"),
                 LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
         }
 
         // GEMİNİ: tek alan, tek kaydet, anahtar varsa silme bağlantısı
-        val keyStatus = Ui.text(this, if (hasKey) "ANAHTAR KAYITLI" else "ANAHTAR YOK", 10f, Ui.GREY)
+        val keyStatus = Ui.text(this, if (hasKey) "KEY STORED" else "NO KEY", 10f, Ui.GREY)
             .apply { letterSpacing = 0.14f }
         val field = EditText(this).apply {
             hint = "AIza..."
@@ -89,78 +89,78 @@ class SettingsActivity : BaseActivity() {
             background = Ui.rounded(this@SettingsActivity, Ui.SURFACE, 22f, Ui.BORDER)
             setPadding(dp(18), dp(12), dp(18), dp(12))
         }
-        val save = Ui.pill(this, "KAYDET") {
+        val save = Ui.pill(this, "SAVE") {
             val typed = field.text.toString()
-            if (typed.isBlank()) { Store.toast(this, "ANAHTARI GİR"); return@pill }
+            if (typed.isBlank()) { Store.toast(this, "ENTER KEY"); return@pill }
             val ok = Settings.saveApiKey(this, typed)
             field.text.clear()
-            Store.toast(this, if (ok) "ANAHTAR KAYDEDİLDİ" else "KAYDEDİLEMEDİ")
+            Store.toast(this, if (ok) "KEY SAVED" else "COULDN'T SAVE")
             recreate()
         }
-        val removeKey = Ui.text(this, "ANAHTARI SİL", 10f, Ui.RED).apply {
+        val removeKey = Ui.text(this, "DELETE KEY", 10f, Ui.RED).apply {
             letterSpacing = 0.14f
             gravity = Gravity.CENTER
             setPadding(0, dp(16), 0, 0)
             setOnClickListener {
-                Sheet.show(this@SettingsActivity, "ANAHTAR SİLİNSİN Mİ?", null, listOf(
-                    Sheet.Action("SİL", Ui.RED) {
+                Sheet.show(this@SettingsActivity, "DELETE KEY?", null, listOf(
+                    Sheet.Action("DELETE", Ui.RED) {
                         Settings.saveApiKey(this@SettingsActivity, "")
-                        Store.toast(this@SettingsActivity, "ANAHTAR SİLİNDİ")
+                        Store.toast(this@SettingsActivity, "KEY DELETED")
                         recreate()
                     },
-                    Sheet.Action("VAZGEÇ", Ui.GREY) {}
+                    Sheet.Action("CANCEL", Ui.GREY) {}
                 ))
             }
         }
 
         // ÖZELLİKLER
         val aiOn = Prefs.get(this, "ai_tag", false)
-        val aiRow = toggleRow("AI ETİKET", "Ekran görüntüsüne başlık ve etiket", aiOn) {
+        val aiRow = toggleRow("AI TAGS", "Title and tags for screenshots", aiOn) {
             when {
                 aiOn -> { Prefs.set(this, "ai_tag", false); recreate() }
-                !hasKey -> Store.toast(this, "ÖNCE ANAHTAR GİR")
-                else -> Sheet.show(this, "AI ETİKET", "Ekran görüntüsünden okunan metin Gemini'ye gönderilir. Günde en fazla ${Summarizer.DAILY_LIMIT} istek.", listOf(
-                    Sheet.Action("AÇ", Ui.WHITE) { Prefs.set(this, "ai_tag", true); recreate() },
-                    Sheet.Action("VAZGEÇ", Ui.GREY) {}
+                !hasKey -> Store.toast(this, "ENTER KEY FIRST")
+                else -> Sheet.show(this, "AI TAGS", "Text read from the screenshot is sent to Gemini. At most ${Summarizer.DAILY_LIMIT} requests a day.", listOf(
+                    Sheet.Action("OPEN", Ui.WHITE) { Prefs.set(this, "ai_tag", true); recreate() },
+                    Sheet.Action("CANCEL", Ui.GREY) {}
                 ))
             }
         }
-        val backupRow = Ui.text(this, "YEDEK VE GERİ YÜKLEME →", 11f, Ui.WHITE, bold = true).apply {
+        val backupRow = Ui.text(this, "BACKUP AND RESTORE →", 11f, Ui.WHITE, bold = true).apply {
             letterSpacing = 0.14f
             setPadding(0, dp(18), 0, dp(18))
             Ui.pressAnim(this)
             setOnClickListener { startActivity(Intent(this@SettingsActivity, BackupActivity::class.java)) }
         }
         val lockOn = Prefs.get(this, "applock", false)
-        val lockRow = toggleRow("UYGULAMA KİLİDİ", "Açılışta parmak izi", lockOn) {
+        val lockRow = toggleRow("APP LOCK", "Fingerprint on launch", lockOn) {
             if (lockOn) {
                 Prefs.set(this, "applock", false)
                 recreate()
             } else if (!AppLock.available(this)) {
-                Store.toast(this, "ÖNCE PARMAK İZİ KUR")
+                Store.toast(this, "SET UP A FINGERPRINT FIRST")
             } else {
                 AppLock.authenticate(this,
                     onOk = { Prefs.set(this, "applock", true); recreate() },
                     onFail = {},
-                    onUnavailable = { Store.toast(this, "DOĞRULAMA AÇILAMADI") })
+                    onUnavailable = { Store.toast(this, "COULDN'T OPEN VERIFICATION") })
             }
         }
         val calmOn = Prefs.get(this, "calm", false)
-        val calmRow = toggleRow("HAREKETİ AZALT", "Animasyonları kısar", calmOn) {
+        val calmRow = toggleRow("REDUCE MOTION", "Reduces animations", calmOn) {
             Prefs.set(this, "calm", !calmOn); recreate()
         }
         val hapticOn = Prefs.get(this, "haptic", true)
-        val hapticRow = toggleRow("TİTREŞİM", "Basılı tutunca kısa titreşim", hapticOn) {
+        val hapticRow = toggleRow("VIBRATION", "Short vibration on long press", hapticOn) {
             Prefs.set(this, "haptic", !hapticOn); recreate()
         }
         val popOn = Prefs.get(this, "pop", true)
-        val popRow = toggleRow("AÇILIŞ SESİ", "Basılı tutunca kısa pop", popOn) {
+        val popRow = toggleRow("STARTUP SOUND", "Short pop on long press", popOn) {
             Prefs.set(this, "pop", !popOn); recreate()
         }
         val holdOn = Prefs.hold(this)
         val triggerRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
-            listOf("ANINDA" to false, "1 SN BASILI" to true).forEachIndexed { i, (label, value) ->
+            listOf("INSTANT" to false, "HOLD 1 SEC" to true).forEachIndexed { i, (label, value) ->
                 val selected = holdOn == value
                 addView(Ui.text(this@SettingsActivity, label, 11f, if (selected) Ui.WHITE else Ui.GREY).apply {
                     letterSpacing = 0.1f
@@ -178,7 +178,7 @@ class SettingsActivity : BaseActivity() {
         val theme = Prefs.theme(this)
         val themeRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
-            listOf("SİSTEM", "KOYU", "AÇIK").forEachIndexed { i, label ->
+            listOf("SYSTEM", "DARK", "ON").forEachIndexed { i, label ->
                 val selected = theme == i
                 addView(Ui.text(this@SettingsActivity, label, 11f, if (selected) Ui.WHITE else Ui.GREY).apply {
                     letterSpacing = 0.1f
@@ -201,13 +201,13 @@ class SettingsActivity : BaseActivity() {
             setPadding(dp(20), dp(44), dp(20), dp(32))
             addView(header, matchWrap())
 
-            addView(section("GEMİNİ", 28))
+            addView(section("GEMINI", 28))
             addView(keyStatus, matchWrap(10))
             addView(field, matchWrap(12))
             addView(save, matchWrap(12))
             if (hasKey) addView(removeKey, matchWrap())
 
-            addView(section("ÖZELLİKLER"))
+            addView(section("FEATURES"))
             addView(aiRow, matchWrap(8))
             addView(divider())
             addView(lockRow)
@@ -219,28 +219,28 @@ class SettingsActivity : BaseActivity() {
             addView(divider())
             addView(popRow)
             addView(divider())
-            addView(Ui.text(this@SettingsActivity, "TETİK", 10f, Ui.GREY).apply { letterSpacing = 0.14f }, matchWrap(16))
+            addView(Ui.text(this@SettingsActivity, "TRIGGER", 10f, Ui.GREY).apply { letterSpacing = 0.14f }, matchWrap(16))
             addView(triggerRow, matchWrap(10))
 
             if (Vault.hasPin(this@SettingsActivity)) {
-                addView(section("ARŞİV"))
-                addView(link("ŞİFREYİ DEĞİŞTİR") {
+                addView(section("ARCHIVE"))
+                addView(link("CHANGE PASSWORD") {
                     startActivity(Intent(this@SettingsActivity, VaultActivity::class.java).putExtra("mode", "change"))
                 }, matchWrap(12))
             }
 
-            addView(section("TEMA"))
+            addView(section("THEME"))
             addView(themeRow, matchWrap(12))
 
-            addView(section("KURULUM"))
-            addView(link("İZİNLERİ VE ASİSTANI AYARLA") {
+            addView(section("SETUP"))
+            addView(link("SET UP PERMISSIONS AND ASSISTANT") {
                 startActivity(Intent(this@SettingsActivity, OnboardActivity::class.java))
             }, matchWrap(12))
 
-            addView(section("VERİ"))
-            addView(link("GİZLİLİK") { startActivity(Intent(this@SettingsActivity, PrivacyActivity::class.java)) }, matchWrap(12))
-            addView(link("HATA GÜNLÜĞÜ") { startActivity(Intent(this@SettingsActivity, LogActivity::class.java)) }, matchWrap(12))
-            addView(Ui.text(this@SettingsActivity, "TÜM VERİLERİ SİL", 10f, Ui.RED).apply {
+            addView(section("DATA"))
+            addView(link("PRIVACY") { startActivity(Intent(this@SettingsActivity, PrivacyActivity::class.java)) }, matchWrap(12))
+            addView(link("ERROR LOG") { startActivity(Intent(this@SettingsActivity, LogActivity::class.java)) }, matchWrap(12))
+            addView(Ui.text(this@SettingsActivity, "DELETE ALL DATA", 10f, Ui.RED).apply {
                 letterSpacing = 0.14f
                 gravity = Gravity.CENTER
                 setPadding(0, dp(24), 0, 0)
@@ -254,15 +254,15 @@ class SettingsActivity : BaseActivity() {
     }
 
     private fun confirmWipe() {
-        Sheet.show(this, "TÜM VERİLER SİLİNSİN Mİ?",
-            "Kayıtlar, ekran görüntüleri, arşiv ve hatırlatıcılar silinir. Geri alınamaz.",
+        Sheet.show(this, "DELETE ALL DATA?",
+            "Records, screenshots, the archive and reminders are deleted. This can't be undone.",
             listOf(
-                Sheet.Action("SİL", Ui.RED) {
+                Sheet.Action("DELETE", Ui.RED) {
                     Store.wipeAll(this)
-                    Store.toast(this, "TÜM VERİLER SİLİNDİ")
+                    Store.toast(this, "ALL DATA DELETED")
                     recreate()
                 },
-                Sheet.Action("VAZGEÇ", Ui.GREY) {}
+                Sheet.Action("CANCEL", Ui.GREY) {}
             ))
     }
 }

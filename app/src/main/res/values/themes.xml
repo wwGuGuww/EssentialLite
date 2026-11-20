@@ -15,10 +15,10 @@
         <item name="android:windowLightNavigationBar">true</item>
     </style>
 
-    <!-- Başlangıç teması: sistem moduna göre; ekranlar açılınca seçilen temayı kendileri uygular. -->
+    <!-- Starting theme: follows the system mode; screens apply the chosen theme themselves when they open. -->
     <style name="Theme.EssentialLite" parent="Theme.EssentialLite.Light" />
 
-    <!-- Üstte açılan pencerelerde sistemin kendi giriş/çıkış animasyonunu kapatır; kendi animasyonumuzla çakışmasın. -->
+    <!-- Turns off the system's own enter/exit animation for overlay windows so it doesn't clash with ours. -->
     <style name="NoWindowAnim">
         <item name="android:windowEnterAnimation">@null</item>
         <item name="android:windowExitAnimation">@null</item>

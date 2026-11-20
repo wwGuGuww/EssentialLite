@@ -83,9 +83,9 @@ object Vault {
             if (parts.size != 2) return@mapNotNull null
             val ext = parts[1].lowercase()
             val kind = when {
-                ext == "txt" -> "NOT"
-                ext in IMAGES -> "GÖRSEL"
-                ext == "m4a" -> "SES"
+                ext == "txt" -> "NOTE"
+                ext in IMAGES -> "IMAGE"
+                ext == "m4a" -> "VOICE"
                 else -> return@mapNotNull null
             }
             Item(f, kind, ext, parts[0].toLongOrNull() ?: f.lastModified())
@@ -99,7 +99,7 @@ object Vault {
     fun moveIn(ctx: Context, e: Entry): Boolean {
         return try {
         // Görseli ya da bağlı notu olan kayıt taşınırsa o ekler kaybolurdu; bu yüzden taşınmaz.
-        if (Store.attachments(e.file).isNotEmpty() || (e.kind != "NOT" && e.text.isNotBlank())) return false
+        if (Store.attachments(e.file).isNotEmpty() || (e.kind != "NOTE" && e.text.isNotBlank())) return false
         val ext = e.file.extension.lowercase()
         write(ctx, e.file.readBytes(), ext, e.time)
         Store.delete(e.file)

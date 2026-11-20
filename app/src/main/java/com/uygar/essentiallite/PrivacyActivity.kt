@@ -12,14 +12,14 @@ class PrivacyActivity : BaseActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val sections = listOf(
-            "GEMİNİ'YE NE GİDER" to "Yalnızca sen istediğinde gider. Anahtar cihazda şifreli saklanır.",
-            "ÖZET" to "Seçtiğin notun metni, sen GÖNDER dediğinde.",
-            "AI ETİKET (AYAR AÇIKSA)" to "Ekran görüntüsünden cihazda okunan metin. Görselin kendisi gitmez. Günde en fazla 30 istek.",
-            "HİÇ GİTMEYENLER" to "Görseller, ses kayıtları, arşiv (gizli bölüm) ve OCR için kullanılan cihaz içi metin tanıma.",
-            "GOOGLE'IN ÜCRETSİZ KATMANI" to "Google, ücretsiz katımda gönderilen verileri ürün geliştirmek için kullanabilir. Hassas bilgi göndermemeye dikkat et.",
-            "SİLME" to "Ayarlar > TÜM VERİLERİ SİL, arşivi ve kayıtları cihazdan kaldırır."
+            "WHAT GEMINI RECEIVES" to "Sent only when you ask. The key is stored encrypted on the device.",
+            "SUMMARY" to "The text of the note you pick, when you tap SEND.",
+            "AI TAGS (IF ENABLED)" to "Text read on device from the screenshot. The image itself isn't sent. At most 30 requests a day.",
+            "NEVER LEAVES DEVICE" to "Images, voice memos, the archive (hidden section) and the on-device text recognition used for OCR.",
+            "GOOGLE'S FREE TIER" to "On the free tier, Google may use the data sent to improve its products. Avoid sending sensitive information.",
+            "KEEP" to "Settings > DELETE ALL DATA removes the archive and records from the device."
         )
-        val header = Ui.kindLabel(this, "GİZLİLİK")
+        val header = Ui.kindLabel(this, "PRIVACY")
         val col = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(20), dp(44), dp(20), dp(32))

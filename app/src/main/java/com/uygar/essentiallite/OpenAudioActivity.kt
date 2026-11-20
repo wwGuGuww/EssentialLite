@@ -21,11 +21,11 @@ class OpenAudioActivity : Activity() {
         }
         Thread {
             val out = runCatching { importAudio(uri) }
-                .onFailure { AppLog.e(this, "dış ses açılamadı", it) }
+                .onFailure { AppLog.e(this, "external audio couldn't be opened", it) }
                 .getOrNull()
             runOnUiThread {
                 if (out == null) {
-                    Store.toast(this, "SES AÇILAMADI")
+                    Store.toast(this, "COULDN'T OPEN AUDIO")
                 } else {
                     startActivity(Intent(this, PlayerActivity::class.java).putExtra("path", out.absolutePath))
                 }

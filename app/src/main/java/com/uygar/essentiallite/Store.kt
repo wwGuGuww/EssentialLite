@@ -31,7 +31,7 @@ data class Entry(
 
 /** Tüm kayıtların tutulduğu yer: uygulamanın özel klasörü. */
 object Store {
-    const val ALL = "TÜMÜ"
+    const val ALL = "ALL"
     private val IMAGES = setOf("png", "jpg", "jpeg", "webp")
     /** Oynatılabilen ses uzantıları; dışarıdan açılan dosyalar da bu listeye göre SES olur. */
     val AUDIO = setOf("m4a", "mp3", "wav", "ogg", "aac", "3gp", "amr", "opus")
@@ -45,18 +45,18 @@ object Store {
         File(dir(ctx), "${System.currentTimeMillis()}.$ext")
 
     fun kindOf(f: File): String = when (f.extension.lowercase()) {
-        "png" -> "EKRAN"
-        "jpg", "jpeg", "webp" -> "GÖRSEL"
-        "txt" -> "NOT"
-        in AUDIO -> "SES"
+        "png" -> "SCREEN"
+        "jpg", "jpeg", "webp" -> "IMAGE"
+        "txt" -> "NOTE"
+        in AUDIO -> "VOICE"
         else -> "?"
     }
 
     fun isImage(f: File) = f.extension.lowercase() in IMAGES
 
-    fun stamp(t: Long): String = SimpleDateFormat("dd.MM HH:mm", Locale("tr")).format(Date(t))
+    fun stamp(t: Long): String = SimpleDateFormat("dd.MM HH:mm", Locale.US).format(Date(t))
 
-    fun dateOf(t: Long): String = SimpleDateFormat("dd.MM", Locale("tr")).format(Date(t))
+    fun dateOf(t: Long): String = SimpleDateFormat("dd.MM", Locale.US).format(Date(t))
 
     fun clock(t: Long): String = SimpleDateFormat("HH:mm", Locale.US).format(Date(t))
 
@@ -103,7 +103,7 @@ object Store {
         val q = query.trim().lowercase(loc)
         val qr = query.trim().lowercase(Locale.ROOT)
         return entries.filter { e ->
-            (kind == ALL || e.kind == kind || (kind == "EKRAN" && e.kind == "GÖRSEL")) &&
+            (kind == ALL || e.kind == kind || (kind == "SCREEN" && e.kind == "IMAGE")) &&
                 (q.isEmpty() ||
                     e.text.lowercase(loc).contains(q) ||
                     e.kind.lowercase(loc).contains(q) ||

@@ -46,18 +46,18 @@ class NoteActivity : BaseActivity() {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             addView(Ui.text(this@NoteActivity, "‹", 18f).apply {
-                contentDescription = "Geri"
+                contentDescription = "Back"
                 setPadding(0, 0, dp(14), 0)
                 setOnClickListener { finish() }
             })
-            addView(Ui.kindLabel(this@NoteActivity, "NOT"), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
-            addView(Ui.text(this@NoteActivity, if (f != null) Store.stamp(f.lastModified()) else "YENİ", 10f, Ui.GREY))
+            addView(Ui.kindLabel(this@NoteActivity, "NOTE"), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+            addView(Ui.text(this@NoteActivity, if (f != null) Store.stamp(f.lastModified()) else "NEW", 10f, Ui.GREY))
         }
 
         val editor = EditText(this).apply {
             setTextColor(Ui.WHITE)
             setHintTextColor(Ui.DIM)
-            hint = "Notunu yaz..."
+            hint = "Write your note..."
             typeface = Typeface.MONOSPACE
             textSize = 15f
             gravity = Gravity.TOP
@@ -82,13 +82,13 @@ class NoteActivity : BaseActivity() {
         val addRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            addView(smallButton("+ GALERİ") { pickFromGallery() })
-            addView(smallButton("+ EKRAN GÖRÜNTÜSÜ") { showShotPicker() }, LinearLayout.LayoutParams(
+            addView(smallButton("+ GALLERY") { pickFromGallery() })
+            addView(smallButton("+ SCREENSHOT") { showShotPicker() }, LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { setMargins(dp(8), 0, 0, 0) })
         }
 
-        val save = Ui.pill(this, "KAYDET") { save(editor.text.toString()) }
-        val summarize = Ui.text(this, "ÖZETLE", 10f, Ui.WHITE, bold = true).apply {
+        val save = Ui.pill(this, "SAVE") { save(editor.text.toString()) }
+        val summarize = Ui.text(this, "SUMMARIZE", 10f, Ui.WHITE, bold = true).apply {
             letterSpacing = 0.14f
             setPadding(0, 0, dp(20), 0)
             setOnClickListener { summarize(editor.text.toString()) }
@@ -195,7 +195,7 @@ class NoteActivity : BaseActivity() {
             cell.addView(Ui.text(this, "×", 14f, 0xFFFFFFFF.toInt(), bold = true).apply {
                 gravity = Gravity.CENTER
                 background = Ui.rounded(this@NoteActivity, 0xCC000000.toInt(), 13f)
-                contentDescription = "Görseli kaldır"
+                contentDescription = "Remove image"
                 setOnClickListener {
                     img.delete()
                     forgetLayout(img.name)
@@ -288,7 +288,7 @@ class NoteActivity : BaseActivity() {
         try {
             startActivityForResult(i, REQ_GALLERY)
         } catch (e: Throwable) {
-            Store.toast(this, "GALERİ AÇILAMADI")
+            Store.toast(this, "COULDN'T OPEN GALLERY")
         }
     }
 
@@ -316,16 +316,16 @@ class NoteActivity : BaseActivity() {
             }
             runOnUiThread {
                 renderBoard()
-                Store.toast(this, if (added > 0) "$added GÖRSEL EKLENDİ" else "GÖRSEL EKLENEMEDİ")
+                Store.toast(this, if (added > 0) "$added IMAGES ADDED" else "COULDN'T ADD IMAGE")
             }
         }.start()
     }
 
     /** Uygulamadaki ekran görüntülerinden seçim: 3 sütunlu küçük resim ızgarası. */
     private fun showShotPicker() {
-        val shots = Store.all(this).filter { Store.isImage(it.file) || it.kind == "EKRAN" }
+        val shots = Store.all(this).filter { Store.isImage(it.file) || it.kind == "SCREEN" }
         if (shots.isEmpty()) {
-            Store.toast(this, "EKRAN GÖRÜNTÜSÜ YOK")
+            Store.toast(this, "NO SCREENSHOT")
             return
         }
         val dialog = Dialog(this, android.R.style.Theme_DeviceDefault_NoActionBar)
@@ -348,7 +348,7 @@ class NoteActivity : BaseActivity() {
                                 e.file.inputStream().use { Store.addAttachment(target, it, e.file.extension.ifEmpty { "png" }) }
                             } catch (t: Throwable) {
                             }
-                            runOnUiThread { renderBoard(); Store.toast(this@NoteActivity, "GÖRSEL EKLENDİ") }
+                            runOnUiThread { renderBoard(); Store.toast(this@NoteActivity, "IMAGE ADDED") }
                         }.start()
                     }
                 }
@@ -360,8 +360,8 @@ class NoteActivity : BaseActivity() {
         val title = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            addView(Ui.kindLabel(this@NoteActivity, "EKRAN GÖRÜNTÜSÜ SEÇ"), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
-            addView(Ui.text(this@NoteActivity, "KAPAT", 10f, Ui.GREY, bold = true).apply {
+            addView(Ui.kindLabel(this@NoteActivity, "PICK SCREENSHOT"), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+            addView(Ui.text(this@NoteActivity, "CLOSE", 10f, Ui.GREY, bold = true).apply {
                 letterSpacing = 0.14f
                 setPadding(dp(12), dp(10), 0, dp(10))
                 setOnClickListener { dialog.dismiss() }
@@ -387,38 +387,38 @@ class NoteActivity : BaseActivity() {
 
     private fun summarize(body: String) {
         if (body.isBlank()) {
-            Store.toast(this, "ÖNCE NOT YAZ")
+            Store.toast(this, "WRITE A NOTE FIRST")
             return
         }
         // Ücretsiz kotayı korumak için sınırlar: uzunluk ve arka arkaya çağrı.
         if (body.length > MAX_SUMMARY_CHARS) {
-            Store.toast(this, "NOT ÇOK UZUN (en fazla $MAX_SUMMARY_CHARS karakter)")
+            Store.toast(this, "NOTE TOO LONG (max $MAX_SUMMARY_CHARS characters)")
             return
         }
         val now = System.currentTimeMillis()
         if (now - lastSummaryAt < SUMMARY_COOLDOWN_MS) {
-            Store.toast(this, "BİRAZ BEKLE")
+            Store.toast(this, "WAIT A BIT")
             return
         }
         if (!Summarizer.withinDailyLimit(this)) {
-            Store.toast(this, "GÜNLÜK LİMİT DOLDU (${Summarizer.DAILY_LIMIT})")
+            Store.toast(this, "DAILY LIMIT REACHED (${Summarizer.DAILY_LIMIT})")
             return
         }
         lastSummaryAt = now
         val key = Settings.apiKey(this)
         if (key == null) {
-            Store.toast(this, "ÖNCE ANAHTAR GİR")
+            Store.toast(this, "ENTER KEY FIRST")
             startActivity(Intent(this, SettingsActivity::class.java))
             return
         }
-        Sheet.show(this, "ÖZET", "Bu not Google Gemini'ye gönderilip özetlensin mi?", listOf(
-            Sheet.Action("GÖNDER", Ui.WHITE) { runSummary(key, body) },
-            Sheet.Action("VAZGEÇ", Ui.GREY) {}
+        Sheet.show(this, "SUMMARY", "Send this note to Google Gemini for a summary?", listOf(
+            Sheet.Action("SEND", Ui.WHITE) { runSummary(key, body) },
+            Sheet.Action("CANCEL", Ui.GREY) {}
         ))
     }
 
     private fun runSummary(key: String, body: String) {
-        Store.toast(this, "ÖZETLENİYOR…")
+        Store.toast(this, "SUMMARIZING…")
         Summarizer.recordUse(this)
         Thread {
             var error = ""
@@ -430,9 +430,9 @@ class NoteActivity : BaseActivity() {
             }
             runOnUiThread {
                 if (result == null) {
-                    Store.toast(this, "ÖZET HATASI: ${error.take(150)}")
+                    Store.toast(this, "SUMMARY ERROR: ${error.take(150)}")
                 } else {
-                    Sheet.show(this, "ÖZET", result, listOf(Sheet.Action("TAMAM", Ui.WHITE) {}))
+                    Sheet.show(this, "SUMMARY", result, listOf(Sheet.Action("OK", Ui.WHITE) {}))
                 }
             }
         }.start()
@@ -455,7 +455,7 @@ class NoteActivity : BaseActivity() {
         if (body.isBlank() && !hasImages) {
             if (f != null && f.exists()) {
                 Store.delete(f)
-                Store.toast(this, "NOT SİLİNDİ")
+                Store.toast(this, "NOTE DELETED")
                 refreshWidgets()
             }
             finish()
@@ -463,7 +463,7 @@ class NoteActivity : BaseActivity() {
         }
         target.writeText(body)
         saved = true
-        Store.toast(this, "NOT KAYDEDİLDİ")
+        Store.toast(this, "NOTE SAVED")
         refreshWidgets()
         // Nottaki tarih/saat (ör. "yarın 15:00") bulunursa hatırlatıcı önerilir.
         val at = Reminders.parse(body)
@@ -474,14 +474,14 @@ class NoteActivity : BaseActivity() {
         if (android.os.Build.VERSION.SDK_INT >= 33 &&
             checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED
         ) requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 7)
-        Sheet.show(this, "HATIRLATICI", "${Store.stamp(at)} için hatırlatıcı kurulsun mu?", listOf(
-            Sheet.Action("KUR", Ui.WHITE) {
+        Sheet.show(this, "REMINDER", "Set a reminder for ${Store.stamp(at)}?", listOf(
+            Sheet.Action("SET", Ui.WHITE) {
                 Reminders.set(this, target, at)
                 refreshWidgets()
-                Store.toast(this, "HATIRLATICI: ${Store.stamp(at)}")
+                Store.toast(this, "REMINDER: ${Store.stamp(at)}")
                 finish()
             },
-            Sheet.Action("GEREK YOK", Ui.GREY) { finish() }
+            Sheet.Action("NOT NEEDED", Ui.GREY) { finish() }
         ))
     }
 

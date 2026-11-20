@@ -88,15 +88,15 @@ class RecordActivity : BaseActivity() {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             addView(Ui.text(this@RecordActivity, "‹", 18f).apply {
-                contentDescription = "Geri"
+                contentDescription = "Back"
                 setPadding(0, 0, dp(14), 0)
                 setOnClickListener { finish() }
             })
-            addView(Ui.kindLabel(this@RecordActivity, "SES"),
+            addView(Ui.kindLabel(this@RecordActivity, "VOICE"),
                 LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
         }
 
-        label = Ui.text(this, "HAZIR", 11f, Ui.GREY, bold = true).apply {
+        label = Ui.text(this, "READY", 11f, Ui.GREY, bold = true).apply {
             letterSpacing = 0.2f
             gravity = Gravity.CENTER
         }
@@ -159,7 +159,7 @@ class RecordActivity : BaseActivity() {
             if (rec) cornerRadius = dp(6).toFloat()
             setColor(Ui.RED)
         }
-        hint.text = if (rec) "■ DURDUR" else "● KAYDET"
+        hint.text = if (rec) "■ STOP" else "● SAVE"
     }
 
     /** Kayıt sırasında her kare yeni bir seviye deseni çizer; kayıt yokken sönük. */
@@ -208,7 +208,7 @@ class RecordActivity : BaseActivity() {
         out = f
         startedAt = System.currentTimeMillis()
         tick = 0
-        label.text = Ui.withDot("KAYIT YAPILIYOR", Ui.RED)
+        label.text = Ui.withDot("RECORDING", Ui.RED)
         label.setTextColor(Ui.RED)
         refreshButton()
         handler.post(frame)
@@ -226,7 +226,7 @@ class RecordActivity : BaseActivity() {
         paintField()
         refreshButton()
         val saved = out?.exists() == true
-        Store.toast(this, if (saved) "SES KAYDEDİLDİ" else "KAYIT ÇOK KISA")
+        Store.toast(this, if (saved) "VOICE MEMO SAVED" else "RECORDING TOO SHORT")
         if (saved) {
             val app = applicationContext
             Thread { CaptureWidget.refreshAll(app) }.start()
@@ -242,6 +242,6 @@ class RecordActivity : BaseActivity() {
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         if (requestCode == 1 && grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED) start()
-        else Store.toast(this, "MİKROFON İZNİ GEREKLİ")
+        else Store.toast(this, "MICROPHONE PERMISSION NEEDED")
     }
 }

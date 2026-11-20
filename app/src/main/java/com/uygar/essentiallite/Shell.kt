@@ -19,7 +19,7 @@ object Shell {
             runCatching { p.waitFor() }
             out
         } catch (e: Throwable) {
-            android.util.Log.e("Shell", "komut başarısız", e)
+            android.util.Log.e("Shell", "command failed", e)
             null
         }
     }

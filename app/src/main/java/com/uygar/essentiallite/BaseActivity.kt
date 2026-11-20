@@ -117,7 +117,7 @@ open class BaseActivity : Activity() {
                     orientation = LinearLayout.VERTICAL
                     gravity = Gravity.CENTER
                     addView(Ui.brand(this@BaseActivity))
-                    addView(Ui.pill(this@BaseActivity, "KİLİDİ AÇ") { authenticate() },
+                    addView(Ui.pill(this@BaseActivity, "UNLOCK") { authenticate() },
                         LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
                             setMargins(0, (32 * d).toInt(), 0, 0)
                         })

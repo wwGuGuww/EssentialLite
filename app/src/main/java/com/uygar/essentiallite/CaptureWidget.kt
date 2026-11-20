@@ -25,7 +25,7 @@ class CaptureWidget : AppWidgetProvider() {
         if (intent.action != ACTION_SHOT) return
         val pending = goAsync()
         Thread {
-            val msg = try { Shot.take(ctx) } catch (e: Throwable) { "HATA" }
+            val msg = try { Shot.take(ctx) } catch (e: Throwable) { "ERROR" }
             Store.toast(ctx, msg)
             pending.finish()
         }.start()
@@ -60,9 +60,9 @@ class CaptureWidget : AppWidgetProvider() {
         }
 
         private fun lastLine(ctx: Context): String {
-            val e = Store.latest(ctx) ?: return "SON: —"
+            val e = Store.latest(ctx) ?: return "LAST: —"
             val p = e.preview
-            return "SON ${e.kind} · ${Store.stamp(e.time)}" + if (p.isNotEmpty()) " · $p" else ""
+            return "LAST ${e.kind} · ${Store.stamp(e.time)}" + if (p.isNotEmpty()) " · $p" else ""
         }
 
         /** 7×7 nokta ikonu: nokta 3dp, aralık 2dp; kapalı noktalar #262626. */

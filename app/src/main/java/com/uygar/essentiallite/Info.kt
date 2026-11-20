@@ -89,6 +89,6 @@ object Info {
 
     /** "iş, fatura ,  #acil" → [iş, fatura, acil]. Küçük harf, tekrarsız, en fazla 8 etiket. */
     fun parseTags(raw: String): List<String> =
-        raw.split(',', ';', '\n').map { it.trim().trimStart('#').lowercase(java.util.Locale("tr")) }
+        raw.split(',', ';', '\n').map { it.trim().trimStart('#').lowercase(java.util.Locale.ENGLISH) }
             .filter { it.isNotEmpty() }.distinct().take(8)
 }

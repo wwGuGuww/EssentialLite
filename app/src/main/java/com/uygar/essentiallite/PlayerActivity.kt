@@ -83,7 +83,7 @@ class PlayerActivity : BaseActivity() {
         try {
             if (marks.isEmpty()) marksFile.delete() else marksFile.writeText(marks.sorted().joinToString("\n"))
         } catch (e: Throwable) {
-            AppLog.e(this, "işaret kaydı", e)
+            AppLog.e(this, "marker memo", e)
         }
     }
 
@@ -100,8 +100,8 @@ class PlayerActivity : BaseActivity() {
             }
             totalText.text = fmt(durationMs)
         } catch (e: Throwable) {
-            AppLog.e(this, "ses açılamadı", e)
-            Store.toast(this, "SES AÇILAMADI")
+            AppLog.e(this, "audio couldn't be opened", e)
+            Store.toast(this, "COULDN'T OPEN AUDIO")
             finish()
         }
     }
@@ -162,13 +162,13 @@ class PlayerActivity : BaseActivity() {
             }
         }
         wave.invalidate()
-        markBtn.text = "● İŞARET ${marks.size.toString().padStart(2, '0')}"
+        markBtn.text = "● MARK ${marks.size.toString().padStart(2, '0')}"
     }
 
     private fun renderMarks() {
         marksRow.removeAllViews()
         if (marks.isEmpty()) {
-            marksRow.addView(Ui.text(this, "İŞARET YOK · DALGADA BİR NOKTAYA DOKUN", 10f, Ui.GREY).apply { letterSpacing = 0.1f })
+            marksRow.addView(Ui.text(this, "NO MARKS · TAP A POINT ON THE WAVE", 10f, Ui.GREY).apply { letterSpacing = 0.1f })
             return
         }
         marks.forEach { m ->
@@ -198,11 +198,11 @@ class PlayerActivity : BaseActivity() {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             addView(Ui.text(this@PlayerActivity, "‹", 18f).apply {
-                contentDescription = "Geri"
+                contentDescription = "Back"
                 setPadding(0, 0, dp(14), 0)
                 setOnClickListener { finish() }
             })
-            addView(Ui.kindLabel(this@PlayerActivity, "SES"), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+            addView(Ui.kindLabel(this@PlayerActivity, "VOICE"), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
             addView(Ui.text(this@PlayerActivity, Store.stamp(file.lastModified()), 10f, Ui.GREY))
         }
 
@@ -210,8 +210,8 @@ class PlayerActivity : BaseActivity() {
             orientation = LinearLayout.VERTICAL
             background = Ui.rounded(this@PlayerActivity, Ui.SURFACE, 24f, Ui.BORDER)
             setPadding(dp(16), dp(12), dp(16), dp(12))
-            addView(Ui.text(this@PlayerActivity, "SADECE BU UYGULAMADA", 11f, Ui.WHITE, bold = true).apply { letterSpacing = 0.14f })
-            addView(Ui.text(this@PlayerActivity, "Dosya özel klasörde. Galeri ve diğer uygulamalar göremez.", 10f, Ui.GREY).apply {
+            addView(Ui.text(this@PlayerActivity, "IN THIS APP ONLY", 11f, Ui.WHITE, bold = true).apply { letterSpacing = 0.14f })
+            addView(Ui.text(this@PlayerActivity, "The file is in a private folder. Gallery and other apps can't see it.", 10f, Ui.GREY).apply {
                 setPadding(0, dp(4), 0, 0)
             })
         }
@@ -273,8 +273,8 @@ class PlayerActivity : BaseActivity() {
             applySpeed()
             speedBtn.text = speedLabels[speedIdx]
         }
-        markBtn = chip("● İŞARET") { toggleMark() }
-        loopBtn = chip("DÖNGÜ") {
+        markBtn = chip("● MARK") { toggleMark() }
+        loopBtn = chip("LOOP") {
             loop = !loop
             loopBtn.setTextColor(if (loop) Color.WHITE else Ui.GREY)
             loopBtn.background = Ui.rounded(this, Color.TRANSPARENT, 20f, if (loop) Ui.WHITE else Ui.LINE)
@@ -290,9 +290,9 @@ class PlayerActivity : BaseActivity() {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             setPadding(0, dp(12), 0, 0)
-            addView(Ui.text(this@PlayerActivity, "${file.extension.uppercase()} · CİHAZDA", 10f, Ui.GREY).apply { letterSpacing = 0.14f },
+            addView(Ui.text(this@PlayerActivity, "${file.extension.uppercase()} · ON DEVICE", 10f, Ui.GREY).apply { letterSpacing = 0.14f },
                 LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
-            addView(Ui.text(this@PlayerActivity, "SİL", 11f, Ui.RED, bold = true).apply {
+            addView(Ui.text(this@PlayerActivity, "DELETE", 11f, Ui.RED, bold = true).apply {
                 letterSpacing = 0.18f
                 setPadding(dp(12), dp(12), dp(4), dp(12))
                 Ui.pressAnim(this)
@@ -329,8 +329,8 @@ class PlayerActivity : BaseActivity() {
     }
 
     private fun confirmDelete() {
-        Sheet.show(this, "SES SİLİNSİN Mİ?", "Geri alınamaz.", listOf(
-            Sheet.Action("SİL", Ui.RED) {
+        Sheet.show(this, "DELETE VOICE MEMO?", "This can't be undone.", listOf(
+            Sheet.Action("DELETE", Ui.RED) {
                 player?.runCatching { stop(); release() }
                 player = null
                 Store.delete(file)
@@ -338,7 +338,7 @@ class PlayerActivity : BaseActivity() {
                 CaptureWidget.refreshAll(applicationContext)
                 finish()
             },
-            Sheet.Action("VAZGEÇ", Ui.GREY) {}
+            Sheet.Action("CANCEL", Ui.GREY) {}
         ))
     }
 

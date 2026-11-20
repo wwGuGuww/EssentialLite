@@ -20,14 +20,14 @@ class ClipSaveActivity : Activity() {
         val cm = getSystemService(ClipboardManager::class.java)
         val text = cm.primaryClip?.takeIf { it.itemCount > 0 }?.getItemAt(0)?.coerceToText(this)?.toString()?.trim()
         if (text.isNullOrEmpty()) {
-            Store.toast(this, "PANO BOŞ")
+            Store.toast(this, "CLIPBOARD EMPTY")
         } else {
             val f = Store.newFile(this, "txt")
             f.writeText(text)
             LinkTitle.attach(this, f, text)
             val app = applicationContext
             Thread { CaptureWidget.refreshAll(app) }.start()
-            Store.toast(this, "PANO KAYDEDİLDİ")
+            Store.toast(this, "CLIPBOARD SAVED")
         }
         finish()
     }

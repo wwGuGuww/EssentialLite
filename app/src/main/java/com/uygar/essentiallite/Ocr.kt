@@ -88,7 +88,7 @@ object AiTag {
                 )
             }
         } catch (e: Throwable) {
-            AppLog.e(ctx, "AI etiket", e)
+            AppLog.e(ctx, "AI tags", e)
         }
     }
 }

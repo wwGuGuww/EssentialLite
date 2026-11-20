@@ -35,7 +35,7 @@ private const val WRAP = ViewGroup.LayoutParams.WRAP_CONTENT
 /** Alarm kayıtları ve zamanlama (tasarım 14b). Günler Pazartesi'den Pazar'a doğru. */
 object AlarmStore {
     class A(val id: Long, var m: Int, var label: String, var days: BooleanArray, var on: Boolean, var six: Boolean,
-            var tone: String = "", var glyph: String = "NEFES")
+            var tone: String = "", var glyph: String = "BREATHE")
 
     private const val CHANNEL = "alarm"
     private const val PREF = "essentiallite_prefs"
@@ -48,7 +48,7 @@ object AlarmStore {
             val o = arr.getJSONObject(i)
             val d = o.getJSONArray("days")
             A(o.getLong("id"), o.getInt("m"), o.getString("label"), BooleanArray(7) { d.getInt(it) == 1 }, o.getBoolean("on"), o.getBoolean("six"),
-                o.optString("tone", ""), o.optString("glyph", "NEFES"))
+                o.optString("tone", ""), o.optString("glyph", "BREATHE"))
         }
     }.getOrDefault(mutableListOf())
 
@@ -82,7 +82,7 @@ object AlarmStore {
         val best = load(ctx).filter { it.on }.map { it to nextTrigger(it, now) }.minByOrNull { it.second } ?: return null
         val min = ((best.second - now) / 60000).toInt()
         val t = ToolUi.p2((best.first.m / 60).toLong()) + ":" + ToolUi.p2((best.first.m % 60).toLong())
-        return t to ("${min / 60} SA ${min % 60} DK SONRA")
+        return t to ("IN ${min / 60} H ${min % 60} MIN")
     }
 
     private fun code(id: Long, k: Int) = ((id % 100000L).toInt() * 10 + k)
@@ -142,7 +142,7 @@ object AlarmStore {
         val a = load(ctx).firstOrNull { it.id == id }
         val intent = Intent(ctx, AlarmRingService::class.java)
             .putExtra("id", id).putExtra("m", m).putExtra("label", label)
-            .putExtra("tone", a?.tone ?: "").putExtra("glyph", a?.glyph ?: "NEFES")
+            .putExtra("tone", a?.tone ?: "").putExtra("glyph", a?.glyph ?: "BREATHE")
         runCatching { ctx.startForegroundService(intent) }
     }
 }
@@ -182,7 +182,7 @@ class AlarmActivity : BaseActivity() {
     private lateinit var panel: LinearLayout
     private var edit: AlarmStore.A? = null
     private var editNew = false
-    private val L = listOf("P", "S", "Ç", "P", "C", "C", "P")
+    private val L = listOf("M", "T", "W", "T", "F", "S", "S")
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -191,13 +191,13 @@ class AlarmActivity : BaseActivity() {
         nextIn = Ui.text(this, "", 11f, Ui.GREY).apply { letterSpacing = 0.14f }
         listBox = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
 
-        val add = outlineBtn(this, "ALARM EKLE", true, Ui.WHITE, Ui.WHITE) { openSheet(null) }
+        val add = outlineBtn(this, "ADD ALARM", true, Ui.WHITE, Ui.WHITE) { openSheet(null) }
         val body = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             addView(ToolUi.tabs(this@AlarmActivity, 1), LinearLayout.LayoutParams(MATCH, dp(44)))
             addView(LinearLayout(this@AlarmActivity).apply {
                 orientation = LinearLayout.VERTICAL
-                addView(Ui.text(this@AlarmActivity, "SONRAKİ", 10f, Ui.GREY).apply { letterSpacing = 0.18f })
+                addView(Ui.text(this@AlarmActivity, "NEXT", 10f, Ui.GREY).apply { letterSpacing = 0.18f })
                 addView(nextView, LinearLayout.LayoutParams(WRAP, WRAP).apply { setMargins(0, dp(8), 0, 0) })
                 addView(nextIn, LinearLayout.LayoutParams(WRAP, WRAP).apply { setMargins(0, dp(10), 0, 0) })
             }, LinearLayout.LayoutParams(MATCH, WRAP).apply { setMargins(0, dp(18), 0, 0) })
@@ -247,7 +247,7 @@ class AlarmActivity : BaseActivity() {
         fun dp(v: Int) = ToolUi.dp(this, v)
         val nx = AlarmStore.next(this)
         nextView.text = nx?.first ?: "--:--"
-        nextIn.text = nx?.second ?: "AÇIK ALARM YOK"
+        nextIn.text = nx?.second ?: "NO ACTIVE ALARMS"
         listBox.removeAllViews()
         alarms.forEach { a ->
             val sub = LinearLayout(this).apply {
@@ -298,14 +298,14 @@ class AlarmActivity : BaseActivity() {
         val e = edit ?: return
         panel.removeAllViews()
         val title = Ui.text(this, "", 11f, Ui.WHITE, bold = true).apply {
-            text = ToolUi.dotText(if (editNew) "YENİ ALARM" else "ALARMI DÜZENLE")
+            text = ToolUi.dotText(if (editNew) "NEW ALARM" else "EDIT ALARM")
             letterSpacing = 0.18f
         }
         panel.addView(LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             addView(title, LinearLayout.LayoutParams(0, WRAP, 1f))
-            addView(Ui.text(this@AlarmActivity, "İPTAL", 11f, Ui.GREY).apply {
+            addView(Ui.text(this@AlarmActivity, "CANCEL", 11f, Ui.GREY).apply {
                 letterSpacing = 0.16f
                 gravity = Gravity.CENTER
                 setPadding(dp(4), 0, dp(4), 0)
@@ -354,11 +354,11 @@ class AlarmActivity : BaseActivity() {
             setPadding(0, dp(6), 0, dp(6))
             addView(LinearLayout(this@AlarmActivity).apply {
                 orientation = LinearLayout.VERTICAL
-                addView(Ui.text(this@AlarmActivity, "ALARM SESİ", 12f, Ui.WHITE, bold = true).apply { letterSpacing = 0.12f })
+                addView(Ui.text(this@AlarmActivity, "ALARM SOUND", 12f, Ui.WHITE, bold = true).apply { letterSpacing = 0.12f })
                 addView(Ui.text(this@AlarmActivity, toneName(e.tone), 10f, Ui.GREY).apply { letterSpacing = 0.1f; maxLines = 1 },
                     LinearLayout.LayoutParams(WRAP, WRAP).apply { setMargins(0, dp(6), 0, 0) })
             }, LinearLayout.LayoutParams(0, WRAP, 1f))
-            addView(Ui.text(this@AlarmActivity, "SEÇ →", 11f, Ui.WHITE, bold = true).apply {
+            addView(Ui.text(this@AlarmActivity, "SELECT →", 11f, Ui.WHITE, bold = true).apply {
                 letterSpacing = 0.14f
                 gravity = Gravity.CENTER
                 setPadding(dp(14), 0, dp(14), 0)
@@ -370,7 +370,7 @@ class AlarmActivity : BaseActivity() {
 
         // GLYPH: Nothing Phone (1) ışıkları; seçince kısa süre önizlenir
         if (NothingGlyph.supported()) {
-            panel.addView(Ui.text(this, "GLYPH IŞIKLARI", 12f, Ui.WHITE, bold = true).apply { letterSpacing = 0.12f },
+            panel.addView(Ui.text(this, "GLYPH LIGHTS", 12f, Ui.WHITE, bold = true).apply { letterSpacing = 0.12f },
                 LinearLayout.LayoutParams(WRAP, WRAP).apply { setMargins(0, dp(14), 0, 0) })
             panel.addView(LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
@@ -392,7 +392,7 @@ class AlarmActivity : BaseActivity() {
             }, LinearLayout.LayoutParams(MATCH, WRAP).apply { setMargins(0, dp(10), 0, 0) })
         }
 
-        val note = Ui.text(this, if (e.six) fmt(e.m) + " → " + fmt((e.m + 5) % 1440) + " · UYANANA KADAR" else "KAPALI · TEK ALARM", 10f, Ui.GREY).apply { letterSpacing = 0.1f }
+        val note = Ui.text(this, if (e.six) fmt(e.m) + " → " + fmt((e.m + 5) % 1440) + "· UNTIL STOPPED" else "OFF · SINGLE ALARM", 10f, Ui.GREY).apply { letterSpacing = 0.1f }
         panel.addView(View(this).apply { setBackgroundColor(Ui.BORDER) }, LinearLayout.LayoutParams(MATCH, dp(1)).apply { setMargins(0, dp(18), 0, 0) })
         panel.addView(LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -400,7 +400,7 @@ class AlarmActivity : BaseActivity() {
             setPadding(0, dp(12), 0, 0)
             addView(LinearLayout(this@AlarmActivity).apply {
                 orientation = LinearLayout.VERTICAL
-                addView(Ui.text(this@AlarmActivity, "6 ALARM · 1 DK ARAYLA", 12f, Ui.WHITE, bold = true).apply { letterSpacing = 0.12f })
+                addView(Ui.text(this@AlarmActivity, "6 ALARMS · 1 MIN APART", 12f, Ui.WHITE, bold = true).apply { letterSpacing = 0.12f })
                 addView(note, LinearLayout.LayoutParams(WRAP, WRAP).apply { setMargins(0, dp(6), 0, 0) })
             }, LinearLayout.LayoutParams(0, WRAP, 1f))
             addView(DesignSwitch(this@AlarmActivity, e.six) { on -> e.six = on; buildSheet() })
@@ -408,14 +408,14 @@ class AlarmActivity : BaseActivity() {
 
         panel.addView(LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
-            if (!editNew) addView(Ui.text(this@AlarmActivity, "SİL", 12f, Ui.RED, bold = true).apply {
+            if (!editNew) addView(Ui.text(this@AlarmActivity, "DELETE", 12f, Ui.RED, bold = true).apply {
                 gravity = Gravity.CENTER
                 letterSpacing = 0.18f
                 setPadding(dp(22), 0, dp(22), 0)
                 background = Ui.rounded(this@AlarmActivity, Color.TRANSPARENT, 28f, Ui.LINE)
                 setOnClickListener { alarms.removeAll { it.id == e.id }; closeSheet(); persist() }
             }, LinearLayout.LayoutParams(WRAP, dp(56)).apply { setMargins(0, 0, dp(10), 0) })
-            addView(outlineBtn(this@AlarmActivity, "KAYDET", false, Ui.WHITE, Ui.WHITE) {
+            addView(outlineBtn(this@AlarmActivity, "SAVE", false, Ui.WHITE, Ui.WHITE) {
                 e.on = true
                 val i = alarms.indexOfFirst { it.id == e.id }
                 if (i >= 0) alarms[i] = e else alarms.add(e)
@@ -430,15 +430,15 @@ class AlarmActivity : BaseActivity() {
     private val glyphStop = Runnable { NothingGlyph.stop() }
 
     private fun toneName(uri: String): String {
-        if (uri.isEmpty()) return "VARSAYILAN ALARM SESİ"
-        return runCatching { RingtoneManager.getRingtone(this, android.net.Uri.parse(uri))?.getTitle(this)?.uppercase() }.getOrNull() ?: "ÖZEL SES"
+        if (uri.isEmpty()) return "DEFAULT ALARM SOUND"
+        return runCatching { RingtoneManager.getRingtone(this, android.net.Uri.parse(uri))?.getTitle(this)?.uppercase() }.getOrNull() ?: "CUSTOM SOUND"
     }
 
     private fun pickTone(e: AlarmStore.A) {
         val existing = if (e.tone.isNotEmpty()) android.net.Uri.parse(e.tone) else RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
         val i = Intent(RingtoneManager.ACTION_RINGTONE_PICKER)
             .putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_ALARM)
-            .putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE, "ALARM SESİ")
+            .putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE, "ALARM SOUND")
             .putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
             .putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, false)
             .putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, existing)

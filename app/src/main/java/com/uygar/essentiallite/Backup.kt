@@ -67,7 +67,7 @@ object Backup {
     /** Yedeği çözer ve henüz olmayan kayıtları ekler. Parola yanlışsa [BadPassword] fırlatır. Eklenen sayıyı döndürür. */
     fun restore(ctx: Context, pw: CharArray, input: java.io.InputStream): Int {
         val all = input.use { it.readBytes() }
-        if (all.size < 4 + 16 + 12 + 16 || String(all, 0, 4) != MAGIC) throw IllegalArgumentException("Bu bir Essential Lite yedeği değil")
+        if (all.size < 4 + 16 + 12 + 16 || String(all, 0, 4) != MAGIC) throw IllegalArgumentException("Not an Essential Lite backup")
         val salt = all.copyOfRange(4, 20)
         val iv = all.copyOfRange(20, 32)
         val c = Cipher.getInstance("AES/GCM/NoPadding")
@@ -91,7 +91,7 @@ object Backup {
         return added
     }
 
-    class BadPassword : Exception("Parola yanlış")
+    class BadPassword : Exception("Wrong password")
 }
 
 private const val MATCH = ViewGroup.LayoutParams.MATCH_PARENT
@@ -110,22 +110,22 @@ class BackupActivity : BaseActivity() {
         super.onCreate(savedInstanceState)
         fun dp(v: Int) = ToolUi.dp(this, v)
         val col = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        col.addView(Ui.text(this, "Kayıtların, notların ve seslerin tek bir şifreli dosyaya kaydedilir. Dosyayı Drive'a ya da başka bir yere koyabilirsin. Parolayı unutursan yedek açılamaz.", 11f, Ui.GREY).apply {
+        col.addView(Ui.text(this, "Your records, notes and voice memos are saved into a single encrypted file. You can put the file on Drive or anywhere else. If you forget the password, the backup can't be opened.", 11f, Ui.GREY).apply {
             letterSpacing = 0.06f; setLineSpacing(0f, 1.4f)
         }, LinearLayout.LayoutParams(MATCH, WRAP))
-        col.addView(Ui.text(this, "● YEDEK AL", 10f, Ui.RED).apply { letterSpacing = 0.2f; setPadding(0, dp(24), 0, dp(10)) })
-        col.addView(outlineBtn(this, "YEDEK DOSYASI OLUŞTUR", true, Ui.WHITE, Ui.WHITE) { askPassword(restore = false) },
+        col.addView(Ui.text(this, "● BACK UP", 10f, Ui.RED).apply { letterSpacing = 0.2f; setPadding(0, dp(24), 0, dp(10)) })
+        col.addView(outlineBtn(this, "CREATE BACKUP FILE", true, Ui.WHITE, Ui.WHITE) { askPassword(restore = false) },
             LinearLayout.LayoutParams(MATCH, dp(56)))
-        col.addView(Ui.text(this, "● YEDEKTEN GERİ YÜKLE", 10f, Ui.RED).apply { letterSpacing = 0.2f; setPadding(0, dp(24), 0, dp(10)) })
-        col.addView(outlineBtn(this, "YEDEK DOSYASINI SEÇ", false, Ui.LINE, Ui.GREY) { askPassword(restore = true) },
+        col.addView(Ui.text(this, "● RESTORE BACKUP", 10f, Ui.RED).apply { letterSpacing = 0.2f; setPadding(0, dp(24), 0, dp(10)) })
+        col.addView(outlineBtn(this, "PICK BACKUP FILE", false, Ui.LINE, Ui.GREY) { askPassword(restore = true) },
             LinearLayout.LayoutParams(MATCH, dp(56)))
         val scroll = ScrollView(this).apply { isVerticalScrollBarEnabled = false; addView(col) }
-        ToolUi.screen(this, "YEDEK", "DRIVE", scroll, topGap = 18)
+        ToolUi.screen(this, "BACKUP", "DRIVE", scroll, topGap = 18)
     }
 
     private fun askPassword(restore: Boolean) {
-        Sheet.input(this, if (restore) "YEDEK PAROLASI" else "YEDEK PAROLASI BELİRLE", "En az 6 karakter", "") { pw ->
-            if (pw.length < 6) { Store.toast(this, "EN AZ 6 KARAKTER"); return@input }
+        Sheet.input(this, if (restore) "BACKUP PASSWORD" else "SET BACKUP PASSWORD", "At least 6 characters", "") { pw ->
+            if (pw.length < 6) { Store.toast(this, "AT LEAST 6 CHARACTERS"); return@input }
             pendingPw = pw.toCharArray()
             if (restore) {
                 startActivityForResult(Intent(Intent.ACTION_OPEN_DOCUMENT).apply { addCategory(Intent.CATEGORY_OPENABLE); type = "*/*" }, REQ_OPEN)
@@ -151,17 +151,17 @@ class BackupActivity : BaseActivity() {
             try {
                 when (req) {
                     REQ_SAVE -> contentResolver.openOutputStream(uri)?.let { Backup.write(this, pw, it) }
-                        ?.also { runOnUiThread { Store.toast(this, "YEDEK KAYDEDİLDİ") } }
+                        ?.also { runOnUiThread { Store.toast(this, "BACKUP SAVED") } }
                     REQ_OPEN -> contentResolver.openInputStream(uri)?.let { n ->
                         val added = Backup.restore(this, pw, n)
-                        runOnUiThread { Store.toast(this, "$added KAYIT GERİ YÜKLENDİ") }
+                        runOnUiThread { Store.toast(this, "$added ITEMS RESTORED") }
                     }
                 }
             } catch (e: Backup.BadPassword) {
-                runOnUiThread { Store.toast(this, "PAROLA YANLIŞ") }
+                runOnUiThread { Store.toast(this, "WRONG PASSWORD") }
             } catch (e: Exception) {
                 AppLog.e(this, "yedek", e)
-                runOnUiThread { Store.toast(this, "YEDEK İŞLEMİ BAŞARISIZ") }
+                runOnUiThread { Store.toast(this, "BACKUP FAILED") }
             } finally {
                 java.util.Arrays.fill(pw, '\u0000')
             }

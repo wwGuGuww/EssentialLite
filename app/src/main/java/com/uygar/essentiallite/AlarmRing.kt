@@ -37,7 +37,7 @@ import com.nothing.ketchum.GlyphManager
  */
 object NothingGlyph {
     /** (kayıt adı, ekranda görünen ad) */
-    val patterns = listOf("KAPALI" to "KAPALI", "NEFES" to "NEFES", "SERIT" to "ŞERİT", "YANIP" to "YANIP SÖN")
+    val patterns = listOf("OFF" to "OFF", "BREATHE" to "BREATHE", "SERIT" to "STRIP", "YANIP" to "BLINK")
 
     private var gm: GlyphManager? = null
     private var worker: Thread? = null
@@ -65,7 +65,7 @@ object NothingGlyph {
 
     fun start(ctx: Context, pattern: String) {
         stop()
-        if (!supported() || pattern == "KAPALI") return
+        if (!supported() || pattern == "OFF") return
         val my = ++gen
         val app = ctx.applicationContext
         appCtx = app
@@ -88,7 +88,7 @@ object NothingGlyph {
     private fun play(m: GlyphManager, pattern: String, my: Int) {
         try {
             when (pattern) {
-                "NEFES" -> {
+                "BREATHE" -> {
                     val b = m.getGlyphFrameBuilder()
                     all.forEach { b.buildChannel(it) }
                     m.animate(b.buildPeriod(2000).buildCycles(60).buildInterval(0).build())
@@ -183,11 +183,11 @@ class AlarmRingService : Service() {
         val m = intent?.getIntExtra("m", 0) ?: 0
         val label = intent?.getStringExtra("label") ?: ""
         val tone = intent?.getStringExtra("tone") ?: ""
-        val glyph = intent?.getStringExtra("glyph") ?: "NEFES"
+        val glyph = intent?.getStringExtra("glyph") ?: "BREATHE"
 
         val nm = getSystemService(NotificationManager::class.java)
         if (nm.getNotificationChannel(CH) == null) {
-            nm.createNotificationChannel(NotificationChannel(CH, "Alarm çalıyor", NotificationManager.IMPORTANCE_HIGH).apply {
+            nm.createNotificationChannel(NotificationChannel(CH, "Alarm ringing", NotificationManager.IMPORTANCE_HIGH).apply {
                 setSound(null, null)
                 enableVibration(false)
             })
@@ -205,7 +205,7 @@ class AlarmRingService : Service() {
             .setSmallIcon(R.drawable.ic_notif).setContentTitle("ALARM").setContentText("$time · $label")
             .setCategory(Notification.CATEGORY_ALARM).setOngoing(true)
             .setContentIntent(full).setFullScreenIntent(full, true)
-            .addAction(Notification.Action.Builder(Icon.createWithResource(this, R.drawable.ic_notif), "KAPAT", dismiss).build())
+            .addAction(Notification.Action.Builder(Icon.createWithResource(this, R.drawable.ic_notif), "CLOSE", dismiss).build())
             .build()
         if (Build.VERSION.SDK_INT >= 29) startForeground(NOTE, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
         else startForeground(NOTE, n)
@@ -246,7 +246,7 @@ class AlarmRingService : Service() {
 class AlarmRingActivity : Activity() {
     companion object { const val DONE = "com.uygar.essentiallite.ALARM_DONE" }
 
-    private var glyph = "NEFES"
+    private var glyph = "BREATHE"
     private val done = object : android.content.BroadcastReceiver() {
         override fun onReceive(c: Context, i: Intent) { NothingGlyph.stop(); finish() }
     }
@@ -260,7 +260,7 @@ class AlarmRingActivity : Activity() {
         val id = intent.getLongExtra("id", 0)
         val m = intent.getIntExtra("m", 0)
         val label = intent.getStringExtra("label") ?: "ALARM"
-        glyph = intent.getStringExtra("glyph") ?: "NEFES"
+        glyph = intent.getStringExtra("glyph") ?: "BREATHE"
         fun dp(v: Int) = ToolUi.dp(this, v)
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -275,7 +275,7 @@ class AlarmRingActivity : Activity() {
             addView(Ui.text(this@AlarmRingActivity, label, 12f, Ui.GREY).apply { letterSpacing = 0.18f },
                 LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { setMargins(0, dp(12), 0, 0) })
             addView(android.view.View(this@AlarmRingActivity), LinearLayout.LayoutParams(1, 0, 1f))
-            addView(outlineBtn(this@AlarmRingActivity, "KAPAT", true, Ui.WHITE, Ui.WHITE) {
+            addView(outlineBtn(this@AlarmRingActivity, "CLOSE", true, Ui.WHITE, Ui.WHITE) {
                 sendBroadcast(Intent(this@AlarmRingActivity, AlarmDismissReceiver::class.java).putExtra("id", id))
                 finish()
             }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(64)))

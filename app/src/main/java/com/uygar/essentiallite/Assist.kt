@@ -27,7 +27,7 @@ class AssistSession(private val ctx: Context) : VoiceInteractionSession(ctx) {
             svc.showPanel()
         } else {
             // Panel erişilebilirlik servisiyle çalışır; kapalıysa kurulum sayfasına götür.
-            Store.toast(ctx, "ÖNCE HIZLI ERİŞİMİ AÇ")
+            Store.toast(ctx, "TURN ON QUICK ACCESS FIRST")
             startAssistantActivity(Intent(ctx, AccessSetupActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
         }
         hide()

@@ -111,7 +111,7 @@ object Sheet {
             addView(Ui.kindLabel(activity, title), LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { setMargins(0, dp(20), 0, dp(12)) })
             addView(field, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
-            addView(Ui.pill(activity, "KAYDET") {
+            addView(Ui.pill(activity, "SAVE") {
                 val v = field.text.toString()
                 close { if (v.isNotBlank()) onOk(v) }
             }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { setMargins(0, dp(14), 0, 0) })

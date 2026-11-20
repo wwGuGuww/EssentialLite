@@ -195,8 +195,8 @@ class OcrPick(ctx: Context) : View(ctx) {
         }
 
         // KOPYALA / TÜMÜ çubuğu: ekran koordinatında hesaplanır, seçimin yeterince üstünde durur (tutamaçlara binmez).
-        val w1 = barText.measureText("KOPYALA") + 28 * d
-        val w2 = barText.measureText("TÜMÜ") + 28 * d
+        val w1 = barText.measureText("COPY") + 28 * d
+        val w2 = barText.measureText("ALL") + 28 * d
         val bw = w1 + w2
         val bh = 44 * d
         var by = topAll - bh - 20 * d
@@ -208,8 +208,8 @@ class OcrPick(ctx: Context) : View(ctx) {
         c.drawRoundRect(rr, bh / 2, bh / 2, barFill)
         c.drawRoundRect(rr, bh / 2, bh / 2, barEdge)
         val base = rr.centerY() - (barText.descent() + barText.ascent()) / 2
-        c.drawText("KOPYALA", rr.left + w1 / 2, base, barText)
-        c.drawText("TÜMÜ", rr.left + w1 + w2 / 2, base, barText)
+        c.drawText("COPY", rr.left + w1 / 2, base, barText)
+        c.drawText("ALL", rr.left + w1 + w2 / 2, base, barText)
         c.restore()
     }
 }

@@ -33,13 +33,13 @@ class EditorActivity : BaseActivity() {
         source = f
         val bmp = f?.let { decodeLimited(it, 2048) }
         if (bmp == null) {
-            Store.toast(this, "GÖRSEL AÇILAMADI")
+            Store.toast(this, "COULDN'T OPEN IMAGE")
             finish()
             return
         }
         markup = MarkupView(this, bmp).apply {
             onChange = { refreshControls() }
-            onTextTap = { x, y -> Sheet.input(this@EditorActivity, "METİN", "yaz...", "") { t -> markup.addText(x, y, t) } }
+            onTextTap = { x, y -> Sheet.input(this@EditorActivity, "TEXT", "type...", "") { t -> markup.addText(x, y, t) } }
         }
 
         count = Ui.text(this, "", 10f, Ui.GREY).apply { letterSpacing = 0.14f }
@@ -47,11 +47,11 @@ class EditorActivity : BaseActivity() {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             addView(Ui.text(this@EditorActivity, "‹", 18f).apply {
-                contentDescription = "Geri"
+                contentDescription = "Back"
                 setPadding(0, 0, dp(14), 0)
                 setOnClickListener { finish() }
             })
-            addView(Ui.kindLabel(this@EditorActivity, "DÜZENLE"),
+            addView(Ui.kindLabel(this@EditorActivity, "EDIT"),
                 LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
             addView(count)
         }
@@ -76,12 +76,12 @@ class EditorActivity : BaseActivity() {
 
         tools = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
 
-        val cancel = Ui.text(this, "İPTAL", 11f, Ui.GREY, bold = true).apply {
+        val cancel = Ui.text(this, "CANCEL", 11f, Ui.GREY, bold = true).apply {
             letterSpacing = 0.16f
             setPadding(0, dp(18), dp(16), dp(18))
             setOnClickListener { finish() }
         }
-        undoBtn = Ui.text(this, "GERİ AL", 11f, Ui.GREY, bold = true).apply {
+        undoBtn = Ui.text(this, "UNDO", 11f, Ui.GREY, bold = true).apply {
             letterSpacing = 0.16f
             setPadding(dp(12), dp(18), dp(12), dp(18))
             Ui.pressAnim(this)
@@ -89,7 +89,7 @@ class EditorActivity : BaseActivity() {
                 if (markup.crop != null && markup.strokes.isEmpty()) markup.clearCrop() else markup.undo()
             }
         }
-        val save = Ui.pill(this, "KAYDET") { save() }
+        val save = Ui.pill(this, "SAVE") { save() }
         val footer = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
@@ -144,7 +144,7 @@ class EditorActivity : BaseActivity() {
         sizes.removeAllViews()
         sizes.visibility = if (sizeTool) View.VISIBLE else View.GONE
         if (sizeTool) {
-            sizes.addView(Ui.text(this, "KALINLIK", 9f, Ui.GREY, bold = true).apply { letterSpacing = 0.14f },
+            sizes.addView(Ui.text(this, "THICKNESS", 9f, Ui.GREY, bold = true).apply { letterSpacing = 0.14f },
                 LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
                     setMargins(0, 0, dp(12), 0)
                 })
@@ -163,12 +163,12 @@ class EditorActivity : BaseActivity() {
         }
 
         tools.removeAllViews()
-        cell("BULANIK", Ui.ICON_BLUR, markup.tool == MarkupView.Tool.MOSAIC, true) { markup.tool = MarkupView.Tool.MOSAIC; refreshControls() }
-        cell("KALEM", Ui.ICON_PEN, markup.tool == MarkupView.Tool.PEN, true) { markup.tool = MarkupView.Tool.PEN; refreshControls() }
-        cell("VURGULA", Ui.ICON_HL, markup.tool == MarkupView.Tool.MARK, true) { markup.tool = MarkupView.Tool.MARK; refreshControls() }
+        cell("BLUR", Ui.ICON_BLUR, markup.tool == MarkupView.Tool.MOSAIC, true) { markup.tool = MarkupView.Tool.MOSAIC; refreshControls() }
+        cell("PEN", Ui.ICON_PEN, markup.tool == MarkupView.Tool.PEN, true) { markup.tool = MarkupView.Tool.PEN; refreshControls() }
+        cell("HIGHLIGHT", Ui.ICON_HL, markup.tool == MarkupView.Tool.MARK, true) { markup.tool = MarkupView.Tool.MARK; refreshControls() }
         cell("OK", Ui.ICON_ARROW, markup.tool == MarkupView.Tool.ARROW, true) { markup.tool = MarkupView.Tool.ARROW; refreshControls() }
-        cell("METİN", Ui.ICON_TEXT, markup.tool == MarkupView.Tool.TEXT, true) { markup.tool = MarkupView.Tool.TEXT; refreshControls() }
-        cell("KIRP", Ui.ICON_CROP, markup.tool == MarkupView.Tool.CROP, true) { markup.tool = MarkupView.Tool.CROP; refreshControls() }
+        cell("TEXT", Ui.ICON_TEXT, markup.tool == MarkupView.Tool.TEXT, true) { markup.tool = MarkupView.Tool.TEXT; refreshControls() }
+        cell("CROP", Ui.ICON_CROP, markup.tool == MarkupView.Tool.CROP, true) { markup.tool = MarkupView.Tool.CROP; refreshControls() }
         undoBtn.alpha = if (markup.strokes.isNotEmpty() || markup.crop != null) 1f else 0.35f
     }
 
@@ -202,7 +202,7 @@ class EditorActivity : BaseActivity() {
     /** Kaydı yeni bir dosya olarak yazar; orijinal değişmez. Kaynak uygulama bilgisi kopyalanır. */
     private fun save() {
         val src = source ?: return
-        Store.toast(this, "KAYDEDİLİYOR…")
+        Store.toast(this, "SAVING…")
         val app = applicationContext
         Thread {
             try {
@@ -213,11 +213,11 @@ class EditorActivity : BaseActivity() {
                 Store.copyMeta(src, target)
                 CaptureWidget.refreshAll(app)
                 runOnUiThread {
-                    Store.toast(this, "DÜZENLENMİŞ KAYDEDİLDİ")
+                    Store.toast(this, "EDITED COPY SAVED")
                     finish()
                 }
             } catch (e: Throwable) {
-                runOnUiThread { Store.toast(this, "KAYDEDİLEMEDİ") }
+                runOnUiThread { Store.toast(this, "COULDN'T SAVE") }
             }
         }.start()
     }

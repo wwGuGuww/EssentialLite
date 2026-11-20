@@ -69,7 +69,7 @@ class VaultActivity : BaseActivity() {
     /** Önce parmak izi (olmazsa telefonun kendi şifresi). Ekran kilidi hiç yoksa 4 haneli yedek şifre. */
     private fun gate() {
         if (System.currentTimeMillis() < lockedUntil) {
-            Store.toast(this, "BİRAZ SONRA TEKRAR DENE")
+            Store.toast(this, "TRY AGAIN SHORTLY")
             finish()
             return
         }
@@ -82,14 +82,14 @@ class VaultActivity : BaseActivity() {
 
     private fun pinGate() {
         if (!Vault.hasPin(this)) {
-            pinPage("ŞİFRE BELİRLE", "4 hane") { first ->
-                pinPage("TEKRAR", "aynı şifreyi gir") { second ->
+            pinPage("SET PASSWORD", "4 digits") { first ->
+                pinPage("REPEAT", "enter the same password") { second ->
                     if (first == second && Vault.setPassword(this, first)) open()
-                    else { Store.toast(this, "UYUŞMADI"); finish() }
+                    else { Store.toast(this, "DOESN'T MATCH"); finish() }
                 }
             }
         } else {
-            pinPage("ŞİFRE", "", onForgot = { confirmForgot() }) { entered ->
+            pinPage("PASSWORD", "", onForgot = { confirmForgot() }) { entered ->
                 if (Vault.verify(this, entered)) {
                     wrong = 0
                     open()
@@ -98,10 +98,10 @@ class VaultActivity : BaseActivity() {
                     if (wrong >= 5) {
                         lockedUntil = System.currentTimeMillis() + 60_000L
                         wrong = 0
-                        Store.toast(this, "ÇOK FAZLA YANLIŞ DENEME")
+                        Store.toast(this, "TOO MANY WRONG ATTEMPTS")
                         finish()
                     } else {
-                        Store.toast(this, "YANLIŞ ŞİFRE")
+                        Store.toast(this, "WRONG PASSWORD")
                         pinGate()
                     }
                 }
@@ -158,14 +158,14 @@ class VaultActivity : BaseActivity() {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER_HORIZONTAL
             setPadding(dp(20), dp(52), dp(20), dp(32))
-            if (withHeader) addView(pageHeader("ARŞİV ŞİFRESİ"), LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
+            if (withHeader) addView(pageHeader("ARCHIVE PASSWORD"), LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
             else addView(Ui.brand(this@VaultActivity), LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT))
             addView(View(this@VaultActivity), LinearLayout.LayoutParams(1, 0, 1f))
             addView(Ui.kindLabel(this@VaultActivity, title))
             if (sub.isNotEmpty()) addView(Ui.text(this@VaultActivity, sub, 11f, Ui.GREY).apply { setPadding(0, dp(8), 0, 0) })
             addView(dots, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { setMargins(0, dp(28), 0, dp(36)) })
             addView(pad)
-            if (onForgot != null) addView(Ui.text(this@VaultActivity, "ŞİFREMİ UNUTTUM", 10f, Ui.GREY, bold = true).apply {
+            if (onForgot != null) addView(Ui.text(this@VaultActivity, "I FORGOT MY PASSWORD", 10f, Ui.GREY, bold = true).apply {
                 letterSpacing = 0.16f
                 gravity = Gravity.CENTER
                 setPadding(0, dp(20), 0, 0)
@@ -179,20 +179,20 @@ class VaultActivity : BaseActivity() {
 
     private fun changeFlow() {
         if (!Vault.hasPin(this)) {
-            Store.toast(this, "ARŞİV ŞİFRESİ YOK")
+            Store.toast(this, "NO ARCHIVE PASSWORD")
             finish()
             return
         }
         val go = {
-            pinPage("ESKİ ŞİFRE", "1 / 3", withHeader = true) { old ->
+            pinPage("OLD PASSWORD", "1 / 3", withHeader = true) { old ->
                 if (!Vault.verify(this, old)) {
-                    Store.toast(this, "YANLIŞ ŞİFRE")
+                    Store.toast(this, "WRONG PASSWORD")
                     finish()
                 } else {
-                    pinPage("YENİ ŞİFRE", "2 / 3", withHeader = true) { a ->
-                        pinPage("TEKRAR", "3 / 3", withHeader = true) { b ->
-                            if (a == b && Vault.setPassword(this, a)) Store.toast(this, "ŞİFRE DEĞİŞTİ")
-                            else Store.toast(this, "UYUŞMADI")
+                    pinPage("NEW PASSWORD", "2 / 3", withHeader = true) { a ->
+                        pinPage("REPEAT", "3 / 3", withHeader = true) { b ->
+                            if (a == b && Vault.setPassword(this, a)) Store.toast(this, "PASSWORD CHANGED")
+                            else Store.toast(this, "DOESN'T MATCH")
                             finish()
                         }
                     }
@@ -205,13 +205,13 @@ class VaultActivity : BaseActivity() {
 
     /** Şifre unutulursa: kurtarma yok, bu yüzden arşiv tamamen silinir (onay ister). */
     private fun confirmForgot() {
-        showSheet("ARŞİV SİLİNSİN Mİ?", listOf(
-            Row("ARŞİVİ SİL VE SIFIRLA", Ui.ICON_TRASH, Ui.RED) {
+        showSheet("DELETE ARCHIVE?", listOf(
+            Row("DELETE AND RESET ARCHIVE", Ui.ICON_TRASH, Ui.RED) {
                 Vault.wipe(this)
-                Store.toast(this, "ARŞİV SIFIRLANDI")
+                Store.toast(this, "ARCHIVE RESET")
                 finish()
             },
-            Row("VAZGEÇ", Ui.ICON_CLOSE, Ui.WHITE) { pinGate() }
+            Row("CANCEL", Ui.ICON_CLOSE, Ui.WHITE) { pinGate() }
         ))
     }
 
@@ -220,7 +220,7 @@ class VaultActivity : BaseActivity() {
         orientation = LinearLayout.HORIZONTAL
         gravity = Gravity.CENTER_VERTICAL
         addView(Ui.text(this@VaultActivity, "‹", 18f).apply {
-                contentDescription = "Geri"
+                contentDescription = "Back"
             setPadding(0, 0, dp(14), 0)
             setOnClickListener { finish() }
         })
@@ -241,20 +241,20 @@ class VaultActivity : BaseActivity() {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             addView(Ui.text(this@VaultActivity, "‹", 18f).apply {
-                contentDescription = "Geri"
+                contentDescription = "Back"
                 setPadding(0, 0, dp(14), 0)
                 setOnClickListener { finish() }
             })
-            addView(Ui.kindLabel(this@VaultActivity, "ARŞİV"), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+            addView(Ui.kindLabel(this@VaultActivity, "ARCHIVE"), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
         }
         val l = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         list = l
         val dock = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             background = Ui.rounded(this@VaultActivity, Ui.SURFACE, 40f, Ui.BORDER2)
-            addView(dockItem("NOT", Ui.ICON_NOTE) { editNote(null) }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f))
+            addView(dockItem("NOTE", Ui.ICON_NOTE) { editNote(null) }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f))
             addView(View(this@VaultActivity).apply { setBackgroundColor(Ui.BORDER) }, LinearLayout.LayoutParams(dp(1), LinearLayout.LayoutParams.MATCH_PARENT))
-            addView(dockItem("GÖRSEL", Ui.ICON_SHOT) { pick() }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f))
+            addView(dockItem("IMAGE", Ui.ICON_SHOT) { pick() }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f))
         }
         show(FrameLayout(this).apply {
             addView(LinearLayout(this@VaultActivity).apply {
@@ -293,7 +293,7 @@ class VaultActivity : BaseActivity() {
         l.removeAllViews()
         val items = Vault.list(this)
         if (items.isEmpty()) {
-            l.addView(Ui.text(this, "Henüz bir şey yok.", 13f, Ui.GREY).apply {
+            l.addView(Ui.text(this, "Nothing yet.", 13f, Ui.GREY).apply {
                 gravity = Gravity.CENTER
                 setPadding(0, dp(64), 0, 0)
             }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
@@ -315,7 +315,7 @@ class VaultActivity : BaseActivity() {
             addView(Ui.text(this@VaultActivity, Store.stamp(it.time), 11f, Ui.GREY).apply { letterSpacing = 0.1f })
         })
         when (it.kind) {
-            "NOT" -> {
+            "NOTE" -> {
                 val body = Ui.text(this, "", 14f, Ui.WHITE).apply {
                     maxLines = 2
                     ellipsize = android.text.TextUtils.TruncateAt.END
@@ -328,7 +328,7 @@ class VaultActivity : BaseActivity() {
                     runOnUiThread { body.text = t.trim() }
                 }.start()
             }
-            "GÖRSEL" -> {
+            "IMAGE" -> {
                 val iv = ImageView(this).apply {
                     scaleType = ImageView.ScaleType.CENTER_CROP
                     background = Ui.rounded(this@VaultActivity, Ui.BG, 14f, Ui.BORDER2)
@@ -432,18 +432,18 @@ class VaultActivity : BaseActivity() {
 
     private fun options(item: Vault.Item) {
         showSheet(item.kind, listOf(
-            Row("AÇ", Ui.ICON_OPEN, Ui.WHITE) { view(item) },
-            Row("GERİ AL", Ui.ICON_UNDO, Ui.WHITE) {
+            Row("OPEN", Ui.ICON_OPEN, Ui.WHITE) { view(item) },
+            Row("UNDO", Ui.ICON_UNDO, Ui.WHITE) {
                 Thread {
                     val ok = Vault.moveOut(this, item)
-                    runOnUiThread { Store.toast(this, if (ok) "ANA LİSTEYE ALINDI" else "TAŞINAMADI"); render() }
+                    runOnUiThread { Store.toast(this, if (ok) "MOVED TO MAIN LIST" else "NOT MOVED"); render() }
                 }.start()
             },
-            Row("SİL", Ui.ICON_TRASH, Ui.RED) {
+            Row("DELETE", Ui.ICON_TRASH, Ui.RED) {
                 main.postDelayed({
-                    showSheet("SİLİNSİN Mİ?", listOf(
-                        Row("SİL", Ui.ICON_TRASH, Ui.RED) { Vault.delete(item.file); render() },
-                        Row("VAZGEÇ", Ui.ICON_CLOSE, Ui.WHITE) {}
+                    showSheet("DELETE?", listOf(
+                        Row("DELETE", Ui.ICON_TRASH, Ui.RED) { Vault.delete(item.file); render() },
+                        Row("CANCEL", Ui.ICON_CLOSE, Ui.WHITE) {}
                     ))
                 }, 260)
             }
@@ -456,11 +456,11 @@ class VaultActivity : BaseActivity() {
 
     private fun view(item: Vault.Item) {
         when (item.kind) {
-            "NOT" -> editNote(item)
-            "GÖRSEL" -> Thread {
+            "NOTE" -> editNote(item)
+            "IMAGE" -> Thread {
                 val b = decode(item, 2048)
                 runOnUiThread {
-                    if (b == null) { Store.toast(this, "AÇILAMADI"); return@runOnUiThread }
+                    if (b == null) { Store.toast(this, "COULDN'T OPEN"); return@runOnUiThread }
                     val dlg = Dialog(this, android.R.style.Theme_DeviceDefault_NoActionBar_Fullscreen)
                     dlg.window?.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
                     dlg.setContentView(ImageView(this).apply {
@@ -473,7 +473,7 @@ class VaultActivity : BaseActivity() {
                     dlg.show()
                 }
             }.start()
-            "SES" -> play(item)
+            "VOICE" -> play(item)
         }
     }
 
@@ -502,7 +502,7 @@ class VaultActivity : BaseActivity() {
                     }
                 }
             } catch (e: Throwable) {
-                runOnUiThread { Store.toast(this, "ÇALINAMADI") }
+                runOnUiThread { Store.toast(this, "COULDN'T PLAY") }
             }
         }.start()
     }
@@ -513,7 +513,7 @@ class VaultActivity : BaseActivity() {
         val et = EditText(this).apply {
             setTextColor(Ui.WHITE)
             setHintTextColor(Ui.DIM)
-            hint = "Notunu yaz..."
+            hint = "Write your note..."
             typeface = Typeface.MONOSPACE
             textSize = 15f
             gravity = Gravity.TOP
@@ -528,14 +528,14 @@ class VaultActivity : BaseActivity() {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             addView(Ui.text(this@VaultActivity, "‹", 18f).apply {
-                contentDescription = "Geri"
+                contentDescription = "Back"
                 setPadding(0, 0, dp(14), 0)
                 setOnClickListener { showList() }
             })
-            addView(Ui.kindLabel(this@VaultActivity, "NOT"), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
-            addView(Ui.text(this@VaultActivity, if (item != null) Store.stamp(item.time) else "YENİ", 10f, Ui.GREY))
+            addView(Ui.kindLabel(this@VaultActivity, "NOTE"), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+            addView(Ui.text(this@VaultActivity, if (item != null) Store.stamp(item.time) else "NEW", 10f, Ui.GREY))
         }
-        val save = Ui.pill(this, "KAYDET") {
+        val save = Ui.pill(this, "SAVE") {
             val text = et.text.toString()
             if (text.isNotBlank()) {
                 Vault.write(this, text.toByteArray(Charsets.UTF_8), "txt", item?.time ?: System.currentTimeMillis())
@@ -559,7 +559,7 @@ class VaultActivity : BaseActivity() {
             .addCategory(Intent.CATEGORY_OPENABLE)
             .setType("image/*")
             .putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
-        try { startActivityForResult(i, REQ_PICK) } catch (e: Throwable) { Store.toast(this, "GALERİ AÇILAMADI") }
+        try { startActivityForResult(i, REQ_PICK) } catch (e: Throwable) { Store.toast(this, "COULDN'T OPEN GALLERY") }
     }
 
     @Deprecated("Deprecated in Java")
@@ -579,7 +579,7 @@ class VaultActivity : BaseActivity() {
                 } catch (e: Throwable) {
                 }
             }
-            runOnUiThread { Store.toast(this, if (n > 0) "$n EKLENDİ" else "EKLENEMEDİ"); render() }
+            runOnUiThread { Store.toast(this, if (n > 0) "$n ADDED" else "COULDN'T ADD"); render() }
         }.start()
     }
 

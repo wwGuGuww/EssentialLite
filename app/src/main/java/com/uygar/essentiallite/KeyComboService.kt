@@ -232,7 +232,7 @@ class KeyComboService : AccessibilityService() {
             return
         }
         if (!android.provider.Settings.canDrawOverlays(this)) {
-            Store.toast(this, "ÜZERİNDE GÖSTER İZNİ GEREKLİ")
+            Store.toast(this, "DISPLAY-OVER-APPS PERMISSION NEEDED")
             return
         }
         try {
@@ -244,7 +244,7 @@ class KeyComboService : AccessibilityService() {
                     main.post {
                         if (panel == null) {
                             try { openPanel() } catch (e: Throwable) {
-                                Store.toast(this, "PANEL HATASI: ${e.javaClass.simpleName}")
+                                Store.toast(this, "PANEL ERROR: ${e.javaClass.simpleName}")
                             }
                             if (bmp != null) readPanelText(bmp)
                         }
@@ -252,8 +252,8 @@ class KeyComboService : AccessibilityService() {
                 }.start()
             } else openPanel()
         } catch (e: Throwable) {
-            android.util.Log.e("KeyCombo", "panel hatası", e)
-            Store.toast(this, "PANEL HATASI: ${e.javaClass.simpleName}")
+            android.util.Log.e("KeyCombo", "panel error", e)
+            Store.toast(this, "PANEL ERROR: ${e.javaClass.simpleName}")
         }
     }
 
@@ -287,7 +287,7 @@ class KeyComboService : AccessibilityService() {
                 if (text.isNotEmpty()) {
                     (getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager)
                         .setPrimaryClip(android.content.ClipData.newPlainText("EL", text))
-                    Store.toast(this@KeyComboService, "KOPYALANDI")
+                    Store.toast(this@KeyComboService, "COPIED")
                     pick?.clearSelection()
                 }
             }
@@ -405,9 +405,9 @@ class KeyComboService : AccessibilityService() {
         val tiles = LinearLayout(ctx).apply {
             orientation = LinearLayout.HORIZONTAL
             setPadding(0, dp(10), 0, 0)
-            addView(Ui.tile(ctx, "EKRAN", Ui.ICON_SHOT) { captureFlow() })
-            addView(Ui.tile(ctx, "NOT", Ui.ICON_NOTE) { showNoteMode() })
-            addView(Ui.tile(ctx, "SES", Ui.ICON_WAVE) { showVoiceMode() })
+            addView(Ui.tile(ctx, "SCREEN", Ui.ICON_SHOT) { captureFlow() })
+            addView(Ui.tile(ctx, "NOTE", Ui.ICON_NOTE) { showNoteMode() })
+            addView(Ui.tile(ctx, "VOICE", Ui.ICON_WAVE) { showVoiceMode() })
         }
         // AI satırı (tasarım 10): ekran görüntüsünü alıp Gemini'ye gönderir.
         val ai = LinearLayout(ctx).apply {
@@ -419,7 +419,7 @@ class KeyComboService : AccessibilityService() {
             addView(LinearLayout(ctx).apply {
                 orientation = LinearLayout.VERTICAL
                 addView(Ui.text(ctx, "AI", 13f, Ui.WHITE, bold = true).apply { letterSpacing = 0.2f })
-                addView(Ui.text(ctx, "GEMINI'YE SOR", 10f, Ui.GREY).apply {
+                addView(Ui.text(ctx, "ASK GEMINI", 10f, Ui.GREY).apply {
                     letterSpacing = 0.14f
                     setPadding(0, dp(4), 0, 0)
                 })
@@ -445,7 +445,7 @@ class KeyComboService : AccessibilityService() {
                     if (t.isNotEmpty()) {
                         (getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager)
                             .setPrimaryClip(android.content.ClipData.newPlainText("EL", t))
-                        Store.toast(ctx, "KOPYALANDI")
+                        Store.toast(ctx, "COPIED")
                         p.clearSelection()
                     }
                 }
@@ -493,7 +493,7 @@ class KeyComboService : AccessibilityService() {
                 hideAiCard()
                 when {
                     aiCancelled -> {}
-                    uri == null -> Store.toast(this, "EKRAN ALINAMADI")
+                    uri == null -> Store.toast(this, "COULDN'T CAPTURE SCREEN")
                     else -> launchGemini(uri)
                 }
             }
@@ -514,7 +514,7 @@ class KeyComboService : AccessibilityService() {
             try {
                 startActivity(Intent.createChooser(send, "Gemini").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
             } catch (t: Throwable) {
-                Store.toast(this, "GEMINI AÇILAMADI")
+                Store.toast(this, "COULDN'T OPEN GEMINI")
             }
         }
     }
@@ -564,11 +564,11 @@ class KeyComboService : AccessibilityService() {
                 gravity = Gravity.CENTER_HORIZONTAL
                 setMargins(0, dp(14), 0, dp(18))
             })
-            addView(Ui.text(this@KeyComboService, "GEMINI AÇILIYOR", 13f, Ui.WHITE, bold = true).apply {
+            addView(Ui.text(this@KeyComboService, "OPENING GEMINI", 13f, Ui.WHITE, bold = true).apply {
                 letterSpacing = 0.18f
                 gravity = Gravity.CENTER
             })
-            addView(Ui.text(this@KeyComboService, "Ekran görüntüsü ekleniyor", 11f, Ui.GREY).apply {
+            addView(Ui.text(this@KeyComboService, "Adding screenshot", 11f, Ui.GREY).apply {
                 gravity = Gravity.CENTER
                 setPadding(0, dp(8), 0, dp(18))
             })
@@ -616,7 +616,7 @@ class KeyComboService : AccessibilityService() {
     private fun showNoteMode() {
         if (panel == null) return
         val et = EditText(this).apply {
-            hint = "Notunu yaz..."
+            hint = "Write your note..."
             setHintTextColor(Ui.DIM)
             setTextColor(Ui.WHITE)
             typeface = Typeface.MONOSPACE
@@ -629,7 +629,7 @@ class KeyComboService : AccessibilityService() {
             orientation = LinearLayout.VERTICAL
             background = Ui.rounded(this@KeyComboService, Ui.BG, 32f, Ui.BORDER2)
             setPadding(dp(16), dp(6), dp(16), dp(16))
-            addView(header("NOT", onClose = { hidePanel() }))
+            addView(header("NOTE", onClose = { hidePanel() }))
             addView(et, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(140)).apply {
                 setMargins(0, dp(8), 0, dp(12))
             })
@@ -638,7 +638,7 @@ class KeyComboService : AccessibilityService() {
                 gravity = Gravity.CENTER_VERTICAL
                 addView(View(this@KeyComboService),
                     LinearLayout.LayoutParams(0, 1, 1f))
-                addView(Ui.pill(this@KeyComboService, "KAYDET") { saveNoteText(et.text.toString()) })
+                addView(Ui.pill(this@KeyComboService, "SAVE") { saveNoteText(et.text.toString()) })
             })
         }
         replacePanelContent(card, focusable = true)
@@ -657,17 +657,17 @@ class KeyComboService : AccessibilityService() {
             f.writeText(text)
             CaptureWidget.refreshAll(app)
         }.start()
-        Store.toast(this, "NOT KAYDEDİLDİ")
+        Store.toast(this, "NOTE SAVED")
         hidePanel()
     }
 
     /** SES modu (tasarım 11): zaman, seviye alanı ve KAYDET / DURDUR. */
     private fun showVoiceMode() {
         if (panel == null) return
-        val label = Ui.text(this, "HAZIR", 11f, Ui.GREY, bold = true).apply { letterSpacing = 0.2f }
+        val label = Ui.text(this, "READY", 11f, Ui.GREY, bold = true).apply { letterSpacing = 0.2f }
         val time = Ui.display(this, "00:00", 64f).apply { gravity = Gravity.CENTER }
         val field = DotField(this, 48, 7).apply { colors = IntArray(48 * 7) { Ui.OFF } }
-        val btn = Ui.pill(this, "● KAYDET") { if (rec == null) startVoice() else stopVoice(keepPanel = true) }
+        val btn = Ui.pill(this, "● SAVE") { if (rec == null) startVoice() else stopVoice(keepPanel = true) }
         voiceLabel = label
         voiceTime = time
         voiceField = field
@@ -728,7 +728,7 @@ class KeyComboService : AccessibilityService() {
 
     private fun startVoice() {
         if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
-            Store.toast(this, "MİKROFON İZNİ İÇİN UYGULAMAYI AÇ")
+            Store.toast(this, "OPEN THE APP TO GRANT MICROPHONE PERMISSION")
             return
         }
         val f = Store.newFile(this, "m4a")
@@ -745,15 +745,15 @@ class KeyComboService : AccessibilityService() {
             rec?.release()
             rec = null
             f.delete()
-            Store.toast(this, "KAYIT BAŞLATILAMADI")
+            Store.toast(this, "COULDN'T START RECORDING")
             return
         }
         recFile = f
         recStart = System.currentTimeMillis()
         recTick = 0
-        voiceLabel?.text = Ui.withDot("KAYIT YAPILIYOR", Ui.RED)
+        voiceLabel?.text = Ui.withDot("RECORDING", Ui.RED)
         voiceLabel?.setTextColor(Ui.RED)
-        voiceBtn?.text = "■ DURDUR"
+        voiceBtn?.text = "■ STOP"
         main.post(voiceFrame)
     }
 
@@ -777,9 +777,9 @@ class KeyComboService : AccessibilityService() {
         removePanelNow()
         if (saved && f != null) {
             shotFile = f
-            showCard(f, "SES KAYDEDİLDİ")
+            showCard(f, "VOICE MEMO SAVED")
         } else {
-            Store.toast(this, "KAYIT ÇOK KISA")
+            Store.toast(this, "RECORDING TOO SHORT")
         }
     }
 
@@ -798,7 +798,7 @@ class KeyComboService : AccessibilityService() {
                 val bmp = file?.let { decodeSample(it, 720) }
                 main.post {
                     Ui.flashOverlay(this)
-                    if (file != null) showCapture(file, bmp) else Store.toast(this, "EKRAN ALINAMADI")
+                    if (file != null) showCapture(file, bmp) else Store.toast(this, "COULDN'T CAPTURE SCREEN")
                 }
                 return@Thread
             }
@@ -809,7 +809,7 @@ class KeyComboService : AccessibilityService() {
                 Ui.flashOverlay(this)
                 showCapture(file, small)
             }
-            try { Shot.write(this, full, file, null) } catch (e: Throwable) { Store.toast(this, "KAYDEDİLEMEDİ") }
+            try { Shot.write(this, full, file, null) } catch (e: Throwable) { Store.toast(this, "COULDN'T SAVE") }
             full.recycle()
             val src = try { Shell.foregroundPackage() } catch (e: Throwable) { null }
             if (src != null) {
@@ -848,7 +848,7 @@ class KeyComboService : AccessibilityService() {
             .withEndAction { shrinkThumb(thumb, bmp, file, sw, sh, targetX, targetY) }
             .start()
 
-        main.postDelayed({ showCard(file, "EKRAN KAYDEDİLDİ") }, dur(140) + dur(520) + 60)
+        main.postDelayed({ showCard(file, "SCREEN SAVED") }, dur(140) + dur(520) + 60)
     }
 
     /** Tam ekran küçük resim penceresi: ekran koordinatları (sistem çubuklarına göre kaymaz). */
@@ -900,7 +900,7 @@ class KeyComboService : AccessibilityService() {
     /** Kaydedildi kartı (tasarım 10): başlık, GERİ AL, DÜZENLE (yalnızca ekran görüntüsü) ve TAMAM. */
     private fun showCard(file: File, title: String) {
         if (shotFile != file) return
-        val isShot = title.startsWith("EKRAN")
+        val isShot = title.startsWith("SCREEN")
         val card = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             background = Ui.rounded(this@KeyComboService, Ui.BG, 32f, Ui.BORDER2)
@@ -919,7 +919,7 @@ class KeyComboService : AccessibilityService() {
                     setOnLongClickListener {
                         (getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager)
                             .setPrimaryClip(android.content.ClipData.newPlainText("EL", text))
-                        Store.toast(this@KeyComboService, "METİN KOPYALANDI")
+                        Store.toast(this@KeyComboService, "TEXT COPIED")
                         true
                     }
                     ocrView = this
@@ -929,22 +929,22 @@ class KeyComboService : AccessibilityService() {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.END
                 setPadding(0, dp(6), 0, 0)
-                addView(action("GERİ AL", Ui.GREY) { undoCapture() })
+                addView(action("UNDO", Ui.GREY) { undoCapture() })
                 if (isShot) {
-                    addView(action("DÜZENLE", Ui.WHITE) {
+                    addView(action("EDIT", Ui.WHITE) {
                         openEditor(file)
                         dismissCapture()
                     })
                 }
-                addView(action("TAMAM", Ui.WHITE) { dismissCapture() }.apply {
+                addView(action("OK", Ui.WHITE) { dismissCapture() }.apply {
                     // Basılı tutunca ekran görüntüsündeki okunmuş metin panoya kopyalanır.
                     setOnLongClickListener {
                         val text = Info.readOcr(file).trim()
-                        if (text.isEmpty()) Store.toast(this@KeyComboService, "METİN YOK")
+                        if (text.isEmpty()) Store.toast(this@KeyComboService, "NO TEXT")
                         else {
                             (getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager)
                                 .setPrimaryClip(android.content.ClipData.newPlainText("EL", text))
-                            Store.toast(this@KeyComboService, "METİN KOPYALANDI")
+                            Store.toast(this@KeyComboService, "TEXT COPIED")
                         }
                         true
                     }
@@ -995,11 +995,11 @@ class KeyComboService : AccessibilityService() {
         if (panel == null) return
         val p = pick
         if (count > 0) {
-            v.text = "● KOPYALA · $count KELİME"
+            v.text = "● COPY · $count WORDS"
             v.setTextColor(Ui.WHITE)
             v.visibility = View.VISIBLE
         } else if (p != null && p.lineCount > 0) {
-            v.text = "KELİMEYE DOKUN · UÇLARINDAN GENİŞLET"
+            v.text = "TAP A WORD · DRAG THE ENDS TO EXTEND"
             v.setTextColor(Ui.GREY)
             v.visibility = View.VISIBLE
         } else v.visibility = View.GONE
@@ -1055,7 +1055,7 @@ class KeyComboService : AccessibilityService() {
                 Store.delete(f)
                 CaptureWidget.refreshAll(applicationContext)
             }.start()
-            Store.toast(this, "GERİ ALINDI")
+            Store.toast(this, "UNDONE")
         }
     }
 

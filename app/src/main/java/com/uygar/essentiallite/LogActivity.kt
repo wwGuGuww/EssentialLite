@@ -15,16 +15,16 @@ class LogActivity : BaseActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val text = AppLog.read(this).ifBlank { "Kayıtlı hata yok." }
+        val text = AppLog.read(this).ifBlank { "No logged errors." }
         val header = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             addView(Ui.text(this@LogActivity, "‹", 18f).apply {
-                contentDescription = "Geri"
+                contentDescription = "Back"
                 setPadding(0, 0, dp(14), 0)
                 setOnClickListener { finish() }
             })
-            addView(Ui.kindLabel(this@LogActivity, "HATA GÜNLÜĞÜ"), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+            addView(Ui.kindLabel(this@LogActivity, "ERROR LOG"), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
         }
         val body = Ui.text(this, text, 11f, Ui.GREY2).apply {
             setLineSpacing(0f, 1.3f)
@@ -32,11 +32,11 @@ class LogActivity : BaseActivity() {
         }
         val actions = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
-            addView(Ui.pill(this@LogActivity, "PAYLAŞ") {
+            addView(Ui.pill(this@LogActivity, "SHARE") {
                 startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).setType("text/plain")
-                    .putExtra(Intent.EXTRA_TEXT, AppLog.read(this@LogActivity).ifBlank { "Hata yok" }), "Paylaş"))
+                    .putExtra(Intent.EXTRA_TEXT, AppLog.read(this@LogActivity).ifBlank { "No errors" }), "Share"))
             }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply { setMargins(0, 0, dp(6), 0) })
-            addView(Ui.pill(this@LogActivity, "TEMİZLE") {
+            addView(Ui.pill(this@LogActivity, "CLEAR") {
                 AppLog.clear(this@LogActivity)
                 recreate()
             }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply { setMargins(dp(6), 0, 0, 0) })

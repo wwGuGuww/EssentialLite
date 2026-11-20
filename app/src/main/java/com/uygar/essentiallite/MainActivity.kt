@@ -170,7 +170,7 @@ class MainActivity : BaseActivity(), Shizuku.OnRequestPermissionResultListener {
             // Gizli giriş: başlığa 4 sn içinde 7 kez dokununca gizli bölüm kapısı açılır. Hiçbir ipucu göstermez.
             addView(Ui.brand(this@MainActivity).apply { setOnClickListener { secretTap() } },
                 LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
-            addView(Ui.text(this@MainActivity, "AYAR", 11f, Ui.GREY).apply {
+            addView(Ui.text(this@MainActivity, "SETTING", 11f, Ui.GREY).apply {
                 letterSpacing = 0.14f
                 setPadding(dp(8), dp(8), dp(16), dp(8))
                 setOnClickListener { startActivity(Intent(this@MainActivity, SettingsActivity::class.java)) }
@@ -185,9 +185,9 @@ class MainActivity : BaseActivity(), Shizuku.OnRequestPermissionResultListener {
         strip = StripView(this)
         val stripLabels = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
-            addView(Ui.text(this@MainActivity, "SON 30 GÜN", 10f, Ui.GREY).apply { letterSpacing = 0.16f },
+            addView(Ui.text(this@MainActivity, "LAST 30 DAYS", 10f, Ui.GREY).apply { letterSpacing = 0.16f },
                 LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
-            addView(Ui.text(this@MainActivity, "● BUGÜN", 10f, Ui.RED).apply { letterSpacing = 0.16f })
+            addView(Ui.text(this@MainActivity, "● TODAY", 10f, Ui.RED).apply { letterSpacing = 0.16f })
         }
         val summary = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -198,7 +198,7 @@ class MainActivity : BaseActivity(), Shizuku.OnRequestPermissionResultListener {
 
         chips = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         search = EditText(this).apply {
-            hint = "ARA: metin, tarih, tür"
+            hint = "SEARCH: text, date, type"
             setHintTextColor(Ui.DIM)
             setTextColor(Ui.WHITE)
             typeface = Typeface.MONOSPACE
@@ -214,7 +214,7 @@ class MainActivity : BaseActivity(), Shizuku.OnRequestPermissionResultListener {
         }
         val searchBtn = FrameLayout(this).apply {
             background = Ui.rounded(this@MainActivity, Ui.SURFACE, 22f, Ui.BORDER)
-            contentDescription = "Ara"
+            contentDescription = "Search"
             addView(DotIcon(this@MainActivity, Ui.ICON_SEARCH, Ui.WHITE, 27), FrameLayout.LayoutParams(dp(27), dp(27), Gravity.CENTER))
             Ui.pressAnim(this)
             setOnClickListener { openSearch() }
@@ -230,7 +230,7 @@ class MainActivity : BaseActivity(), Shizuku.OnRequestPermissionResultListener {
             gravity = Gravity.CENTER_VERTICAL
             visibility = View.GONE
             addView(search, LinearLayout.LayoutParams(0, dp(44), 1f))
-            addView(Ui.text(this@MainActivity, "İPTAL", 11f, Ui.GREY2, bold = true).apply {
+            addView(Ui.text(this@MainActivity, "CANCEL", 11f, Ui.GREY2, bold = true).apply {
                 letterSpacing = 0.14f
                 gravity = Gravity.CENTER
                 setPadding(dp(14), 0, dp(4), 0)
@@ -276,11 +276,11 @@ class MainActivity : BaseActivity(), Shizuku.OnRequestPermissionResultListener {
             outlineProvider = object : ViewOutlineProvider() {
                 override fun getOutline(v: View, o: Outline) { o.setRoundRect(0, 0, v.width, v.height, fdp(40f)) }
             }
-            addView(dockItem("EKRAN", Ui.ICON_SHOT) { takeShot() }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f))
+            addView(dockItem("SCREEN", Ui.ICON_SHOT) { takeShot() }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f))
             addView(View(this@MainActivity).apply { setBackgroundColor(Ui.BORDER) }, LinearLayout.LayoutParams(dp(1), LinearLayout.LayoutParams.MATCH_PARENT))
-            addView(dockItem("NOT", Ui.ICON_NOTE) { startActivity(Intent(this@MainActivity, NoteActivity::class.java)) }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f))
+            addView(dockItem("NOTE", Ui.ICON_NOTE) { startActivity(Intent(this@MainActivity, NoteActivity::class.java)) }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f))
             addView(View(this@MainActivity).apply { setBackgroundColor(Ui.BORDER) }, LinearLayout.LayoutParams(dp(1), LinearLayout.LayoutParams.MATCH_PARENT))
-            addView(dockItem("SES", Ui.ICON_WAVE) { startActivity(Intent(this@MainActivity, RecordActivity::class.java)) }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f))
+            addView(dockItem("VOICE", Ui.ICON_WAVE) { startActivity(Intent(this@MainActivity, RecordActivity::class.java)) }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f))
         }
 
         scroll = object : ScrollView(this) {
@@ -352,16 +352,16 @@ class MainActivity : BaseActivity(), Shizuku.OnRequestPermissionResultListener {
 
     private fun refreshStatus() {
         status.text = when {
-            !Shizuku.pingBinder() -> "SHİZUKU KAPALI"
-            Shot.ready() -> "HAZIR"
-            else -> "İZİN BEKLENİYOR"
+            !Shizuku.pingBinder() -> "SHIZUKU OFF"
+            Shot.ready() -> "READY"
+            else -> "WAITING FOR PERMISSION"
         }
     }
 
     private fun takeShot() {
         Ui.flashActivity(this)
         Thread {
-            val msg = try { Shot.take(this) } catch (e: Throwable) { "HATA" }
+            val msg = try { Shot.take(this) } catch (e: Throwable) { "ERROR" }
             runOnUiThread { Store.toast(this, msg); renderList(false) }
         }.start()
     }
@@ -397,7 +397,7 @@ class MainActivity : BaseActivity(), Shizuku.OnRequestPermissionResultListener {
 
     private fun renderChips() {
         chips.removeAllViews()
-        for (k in listOf(Store.ALL, "EKRAN", "NOT", "SES")) {
+        for (k in listOf(Store.ALL, "SCREEN", "NOTE", "VOICE")) {
             val selected = k == filter
             chips.addView(LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
@@ -434,8 +434,8 @@ class MainActivity : BaseActivity(), Shizuku.OnRequestPermissionResultListener {
         countText = big
         stats.addView(big, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
         val col = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        for (k in listOf("EKRAN", "NOT", "SES")) {
-            val n = all.count { it.kind == k || (k == "EKRAN" && it.kind == "GÖRSEL") }
+        for (k in listOf("SCREEN", "NOTE", "VOICE")) {
+            val n = all.count { it.kind == k || (k == "SCREEN" && it.kind == "IMAGE") }
             col.addView(LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
                 addView(Ui.text(this@MainActivity, k, 11f, Ui.GREY).apply { letterSpacing = 0.14f }, LinearLayout.LayoutParams(dp(56), LinearLayout.LayoutParams.WRAP_CONTENT))
@@ -495,10 +495,10 @@ class MainActivity : BaseActivity(), Shizuku.OnRequestPermissionResultListener {
                 orientation = LinearLayout.VERTICAL
                 gravity = Gravity.CENTER_HORIZONTAL
                 setPadding(0, dp(48), 0, dp(48))
-                addView(Ui.text(this@MainActivity, if (filtered) "Bu aramada kayıt yok." else "Kayıt yok.", 13f, Ui.GREY2).apply {
+                addView(Ui.text(this@MainActivity, if (filtered) "No records match this search." else "No records.", 13f, Ui.GREY2).apply {
                     gravity = Gravity.CENTER
                 })
-                if (filtered) addView(Ui.text(this@MainActivity, "FİLTRELERİ TEMİZLE", 10f, Ui.WHITE, bold = true).apply {
+                if (filtered) addView(Ui.text(this@MainActivity, "CLEAR FILTERS", 10f, Ui.WHITE, bold = true).apply {
                     letterSpacing = 0.16f
                     gravity = Gravity.CENTER
                     background = Ui.rounded(this@MainActivity, Color.TRANSPARENT, 20f, Ui.LINE)
@@ -523,7 +523,7 @@ class MainActivity : BaseActivity(), Shizuku.OnRequestPermissionResultListener {
         val visible = items.take(showLimit)
         val pinned = visible.filter { it.pinned }
         if (pinned.isNotEmpty()) {
-            list.addView(sectionHeader("SABİTLENENLER", pinned.size))
+            list.addView(sectionHeader("PINNED", pinned.size))
             pinned.forEach { addCard(it) }
         }
         val groups = visible.filter { !it.pinned }.groupBy { Store.dayKey(it.time) }
@@ -532,7 +532,7 @@ class MainActivity : BaseActivity(), Shizuku.OnRequestPermissionResultListener {
             group.forEach { addCard(it) }
         }
         if (items.size > showLimit) {
-            list.addView(Ui.pill(this, "DAHA FAZLA · ${items.size - showLimit}") {
+            list.addView(Ui.pill(this, "MORE · ${items.size - showLimit}") {
                 showLimit += 40
                 renderList(false)
             }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
@@ -587,7 +587,7 @@ class MainActivity : BaseActivity(), Shizuku.OnRequestPermissionResultListener {
         Thread {
             val ok = Vault.moveIn(this, e)
             runOnUiThread {
-                Store.toast(this, if (ok) "TAŞINDI" else "TAŞINAMADI (NOTU YA DA EKİ VAR)")
+                Store.toast(this, if (ok) "MOVED" else "NOT MOVED (HAS A NOTE OR ATTACHMENT)")
                 cardGen++
                 renderList(false)
             }
@@ -611,7 +611,7 @@ class MainActivity : BaseActivity(), Shizuku.OnRequestPermissionResultListener {
     private fun toggleReminder(e: Entry) {
         if (e.remind > System.currentTimeMillis()) {
             Reminders.cancel(this, e.file)
-            Store.toast(this, "HATIRLATICI KALDIRILDI")
+            Store.toast(this, "REMINDER REMOVED")
             cardGen++
             renderList(false)
             return
@@ -623,7 +623,7 @@ class MainActivity : BaseActivity(), Shizuku.OnRequestPermissionResultListener {
     }
 
     private fun editTags(e: Entry) {
-        showInput("ETİKETLER", "iş, fatura, fikir", e.tags.joinToString(", ")) { raw ->
+        showInput("TAGS", "work, invoice, idea", e.tags.joinToString(", ")) { raw ->
             Info.update(e.file) { it.copy(tags = Info.parseTags(raw)) }
             cardGen++
             renderList(false)
@@ -642,10 +642,10 @@ class MainActivity : BaseActivity(), Shizuku.OnRequestPermissionResultListener {
                 orientation = LinearLayout.VERTICAL
                 background = Ui.rounded(this@MainActivity, Ui.SURFACE, 24f, Ui.BORDER)
                 setPadding(dp(18), dp(16), dp(18), dp(16))
-                addView(Ui.kindLabel(this@MainActivity, "İZİN BEKLENİYOR"))
-                addView(Ui.text(this@MainActivity, "Ses kaydı için mikrofon izni gerekli.", 12f, Ui.GREY2)
+                addView(Ui.kindLabel(this@MainActivity, "WAITING FOR PERMISSION"))
+                addView(Ui.text(this@MainActivity, "Voice memos need microphone permission.", 12f, Ui.GREY2)
                     .apply { setPadding(0, dp(8), 0, dp(12)) })
-                addView(Ui.pill(this@MainActivity, "İZİN VER") {
+                addView(Ui.pill(this@MainActivity, "ALLOW") {
                     requestPermissions(arrayOf(android.Manifest.permission.RECORD_AUDIO), 2)
                 }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT))
             }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
@@ -673,11 +673,11 @@ class MainActivity : BaseActivity(), Shizuku.OnRequestPermissionResultListener {
                 start()
             }
         }
-        addView(Ui.text(this@MainActivity, "Henüz kayıt yok.", 15f, Ui.WHITE, bold = true).apply {
+        addView(Ui.text(this@MainActivity, "No records yet.", 15f, Ui.WHITE, bold = true).apply {
             gravity = Gravity.CENTER
             setPadding(0, dp(24), 0, dp(8))
         })
-        addView(Ui.text(this@MainActivity, "Aşağıdan ilk kaydını al.", 12f, Ui.GREY).apply { gravity = Gravity.CENTER })
+        addView(Ui.text(this@MainActivity, "Make your first capture below.", 12f, Ui.GREY).apply { gravity = Gravity.CENTER })
     }
 
     private fun dayHeader(t: Long, count: Int) = LinearLayout(this).apply {
@@ -686,8 +686,8 @@ class MainActivity : BaseActivity(), Shizuku.OnRequestPermissionResultListener {
         setPadding(0, dp(14), 0, dp(12))
         val key = Store.dayKey(t)
         val name = when (key) {
-            Store.dayKey(System.currentTimeMillis()) -> "BUGÜN"
-            Store.dayKey(System.currentTimeMillis() - 86_400_000L) -> "DÜN"
+            Store.dayKey(System.currentTimeMillis()) -> "TODAY"
+            Store.dayKey(System.currentTimeMillis() - 86_400_000L) -> "YESTERDAY"
             else -> ""
         }
         addView(Ui.dayLabel(this@MainActivity, name, Store.dateOf(t)))
@@ -757,7 +757,7 @@ class MainActivity : BaseActivity(), Shizuku.OnRequestPermissionResultListener {
         val isPlaying = playingFile == e.file
         val btn = FrameLayout(this).apply {
             background = Ui.rounded(this@MainActivity, Color.TRANSPARENT, 22f, if (isPlaying) Ui.RED else Ui.LINE)
-            contentDescription = if (isPlaying) "Duraklat" else "Oynat"
+            contentDescription = if (isPlaying) "Pause" else "Play"
             addView(DotIcon(this@MainActivity, if (isPlaying) PAUSE else Ui.ICON_PLAY, Ui.WHITE, 27),
                 FrameLayout.LayoutParams(dp(27), dp(27), Gravity.CENTER))
             setOnClickListener { togglePlay(e.file) }
@@ -813,7 +813,7 @@ class MainActivity : BaseActivity(), Shizuku.OnRequestPermissionResultListener {
                 playingFile = f
                 runCatching { player?.playbackParams = android.media.PlaybackParams().setSpeed(voiceSpeed) }
             } catch (t: Throwable) {
-                Store.toast(this, "SES ÇALINAMADI")
+                Store.toast(this, "COULDN'T PLAY AUDIO")
             }
         }
         renderList(false)
@@ -835,7 +835,7 @@ class MainActivity : BaseActivity(), Shizuku.OnRequestPermissionResultListener {
             addView(Ui.text(this@MainActivity, Store.clock(e.time), 11f, Ui.GREY).apply { letterSpacing = 0.1f; gravity = Gravity.END })
         }
         when (e.kind) {
-            "EKRAN", "GÖRSEL" -> {
+            "SCREEN", "IMAGE" -> {
                 box.orientation = LinearLayout.HORIZONTAL
                 val meta = Ui.text(this, "", 10f, Ui.GREY).apply { letterSpacing = 0.14f }
                 box.addView(shotThumb(e.file, meta), LinearLayout.LayoutParams(dp(64), dp(112)))
@@ -863,7 +863,7 @@ class MainActivity : BaseActivity(), Shizuku.OnRequestPermissionResultListener {
                 }
                 box.addView(col, LinearLayout.LayoutParams(0, dp(112), 1f).apply { setMargins(dp(16), 0, 0, 0) })
             }
-            "SES" -> {
+            "VOICE" -> {
                 box.addView(header())
                 box.addView(voiceRow(e), LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
                     setMargins(0, dp(14), 0, 0)
@@ -917,7 +917,7 @@ class MainActivity : BaseActivity(), Shizuku.OnRequestPermissionResultListener {
     private fun card(e: Entry): View {
         val wrap = FrameLayout(this)
         val trashDots = DotIcon(this, Ui.ICON_TRASH, Ui.RED, 27)
-        val label = Ui.text(this, "SİL", 12f, Ui.RED, bold = true).apply { letterSpacing = 0.18f }
+        val label = Ui.text(this, "DELETE", 12f, Ui.RED, bold = true).apply { letterSpacing = 0.18f }
         val layer = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL or Gravity.END
@@ -953,7 +953,7 @@ class MainActivity : BaseActivity(), Shizuku.OnRequestPermissionResultListener {
             val past = -v >= threshold
             layer.alpha = p
             layer.background = Ui.rounded(this, if (past) 0x29F0303A else Ui.BG, 24f, if (past) Ui.RED else Ui.BORDER2)
-            label.text = if (past) "BIRAK" else "SİL"
+            label.text = if (past) "RELEASE" else "DELETE"
             label.setTextColor(if (past) Ui.WHITE else Ui.RED)
             val s = if (past) 1.35f else 1f
             trashDots.animate().scaleX(s).scaleY(s).setDuration(200).start()
@@ -997,7 +997,7 @@ class MainActivity : BaseActivity(), Shizuku.OnRequestPermissionResultListener {
             }
         }
         // Dokununca kaydı aç; basılı tutunca titreşim + pop sesiyle menü (sabitle, etiket, hatırlatıcı, gizle, paylaş, sil) açılır.
-        body.setOnClickListener { if (selecting) toggleSelect(e) else if (e.kind == "SES") startActivity(Intent(this, PlayerActivity::class.java).putExtra("path", e.file.absolutePath)) else open(e.file) }
+        body.setOnClickListener { if (selecting) toggleSelect(e) else if (e.kind == "VOICE") startActivity(Intent(this, PlayerActivity::class.java).putExtra("path", e.file.absolutePath)) else open(e.file) }
         if (selecting && e.file.path in selected) wrap.foreground = GradientDrawable().apply { cornerRadius = fdp(24f); setStroke(dp(2), Ui.RED); setColor(Color.TRANSPARENT) }
         body.setOnLongClickListener { Feel.pop(this); showSheet(e); true }
         wrap.layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
@@ -1097,11 +1097,11 @@ class MainActivity : BaseActivity(), Shizuku.OnRequestPermissionResultListener {
             setOnClickListener { onClick() }
         }
         listOf(
-            act("SİL", Ui.RED) { bulkDelete() },
-            act("ETİKET", Ui.WHITE) { bulkTag() },
-            act("GİZLE", Ui.WHITE) { bulkVault() },
-            act("PAYLAŞ", Ui.WHITE) { bulkShare() },
-            act("İPTAL", Ui.GREY) { exitSelection() }
+            act("DELETE", Ui.RED) { bulkDelete() },
+            act("TAG", Ui.WHITE) { bulkTag() },
+            act("HIDE", Ui.WHITE) { bulkVault() },
+            act("SHARE", Ui.WHITE) { bulkShare() },
+            act("CANCEL", Ui.GREY) { exitSelection() }
         ).forEach { bar.addView(it, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f)) }
     }
 
@@ -1110,33 +1110,33 @@ class MainActivity : BaseActivity(), Shizuku.OnRequestPermissionResultListener {
     private fun bulkDelete() {
         val items = selectedEntries()
         val n = items.size
-        showChoices("$n KAYIT SİLİNSİN Mİ?", listOf(
-            Triple("SİL", Ui.RED) {
+        showChoices("DELETE $n ITEMS?", listOf(
+            Triple("DELETE", Ui.RED) {
                 exitSelection()
                 Thread {
                     items.forEach { Store.delete(it.file) }
                     CaptureWidget.refreshAll(applicationContext)
-                    runOnUiThread { renderList(false); Store.toast(this, "$n KAYIT SİLİNDİ") }
+                    runOnUiThread { renderList(false); Store.toast(this, "$n ITEMS DELETED") }
                 }.start()
             },
-            Triple("VAZGEÇ", Ui.WHITE) {}
+            Triple("CANCEL", Ui.WHITE) {}
         ))
     }
 
     private fun bulkTag() {
         val items = selectedEntries()
-        showInput("ETİKET EKLE", "iş, fatura, fikir") { raw ->
+        showInput("ADD TAG", "work, invoice, idea") { raw ->
             val tags = Info.parseTags(raw)
             if (tags.isNotEmpty()) Thread {
                 items.forEach { e -> Info.update(e.file) { d -> d.copy(tags = (d.tags + tags).distinct().take(8)) } }
-                runOnUiThread { exitSelection(); Store.toast(this, "ETİKET EKLENDİ") }
+                runOnUiThread { exitSelection(); Store.toast(this, "TAG ADDED") }
             }.start()
         }
     }
 
     private fun bulkVault() {
         if (!Vault.configured(this)) {
-            Store.toast(this, "ARŞİV HENÜZ AÇILMADI")
+            Store.toast(this, "ARCHIVE NOT OPENED YET")
             return
         }
         val items = selectedEntries()
@@ -1146,7 +1146,7 @@ class MainActivity : BaseActivity(), Shizuku.OnRequestPermissionResultListener {
             var skipped = 0
             items.forEach { if (Vault.moveIn(this, it)) ok++ else skipped++ }
             runOnUiThread {
-                Store.toast(this, if (skipped == 0) "$ok KAYIT ARŞİVDE" else "$ok ARŞİVDE, $skipped TAŞINAMADI")
+                Store.toast(this, if (skipped == 0) "$ok ITEMS ARCHIVED" else "$ok ARCHIVED, $skipped NOT MOVED")
                 renderList(false)
             }
             CaptureWidget.refreshAll(applicationContext)
@@ -1156,10 +1156,10 @@ class MainActivity : BaseActivity(), Shizuku.OnRequestPermissionResultListener {
     private fun bulkShare() {
         val items = selectedEntries()
         if (items.isEmpty()) return
-        Sheet.show(this, "PAYLAŞ", null, listOf(
-            Sheet.Action("PDF OLARAK", Ui.WHITE) { sharePdf(items) },
-            Sheet.Action("GÖRSEL VEYA METİN", Ui.WHITE) { shareRaw(items) },
-            Sheet.Action("VAZGEÇ", Ui.GREY) {}
+        Sheet.show(this, "SHARE", null, listOf(
+            Sheet.Action("AS PDF", Ui.WHITE) { sharePdf(items) },
+            Sheet.Action("IMAGE OR TEXT", Ui.WHITE) { shareRaw(items) },
+            Sheet.Action("CANCEL", Ui.GREY) {}
         ))
     }
 
@@ -1168,13 +1168,13 @@ class MainActivity : BaseActivity(), Shizuku.OnRequestPermissionResultListener {
             val f = try { PdfExport.write(applicationContext, items) } catch (t: Throwable) { AppLog.e(applicationContext, "PDF", t); null }
             runOnUiThread {
                 if (f == null) {
-                    Store.toast(this, "PDF OLUŞTURULAMADI")
+                    Store.toast(this, "COULDN'T CREATE PDF")
                 } else {
                     val uri = FileProvider.getUriForFile(this, "$packageName.files", f)
                     val send = Intent(Intent.ACTION_SEND).setType("application/pdf")
                         .putExtra(Intent.EXTRA_STREAM, uri)
                         .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                    startActivity(Intent.createChooser(send, "Paylaş"))
+                    startActivity(Intent.createChooser(send, "Share"))
                 }
             }
         }.start()
@@ -1192,7 +1192,7 @@ class MainActivity : BaseActivity(), Shizuku.OnRequestPermissionResultListener {
             }.trim()
             Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text)
         }
-        startActivity(Intent.createChooser(intent, "Paylaş"))
+        startActivity(Intent.createChooser(intent, "Share"))
     }
 
     /** Uygulamanın kendi sayfa tarzında, etiketli seçenekler listesi. */
@@ -1264,10 +1264,10 @@ class MainActivity : BaseActivity(), Shizuku.OnRequestPermissionResultListener {
                 setMargins(0, dp(20), 0, dp(12))
             })
             addView(field, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
-            addView(Ui.text(this@MainActivity, "Virgülle ayır. En fazla 8 etiket.", 11f, Ui.GREY).apply {
+            addView(Ui.text(this@MainActivity, "Separate with commas. Up to 8 tags.", 11f, Ui.GREY).apply {
                 setPadding(0, dp(10), 0, dp(12))
             })
-            addView(Ui.pill(this@MainActivity, "KAYDET") {
+            addView(Ui.pill(this@MainActivity, "SAVE") {
                 val v = field.text.toString()
                 hideSheet()
                 onOk(v)
@@ -1298,7 +1298,7 @@ class MainActivity : BaseActivity(), Shizuku.OnRequestPermissionResultListener {
     private fun renderQuick() {
         if (!::quickRow.isInitialized) return
         quickRow.removeAllViews()
-        listOf("BUGÜN" to "BUGÜN", "HAFTA" to "BU HAFTA", "SABİT" to "SABİT", "ETİKET" to "ETİKETLİ").forEach { (key, label) ->
+        listOf("TODAY" to "TODAY", "WEEK" to "THIS WEEK", "PINNED" to "PINNED", "TAG" to "TAGGED").forEach { (key, label) ->
             val on = quick == key
             quickRow.addView(Ui.text(this, label, 10f, if (on) Ui.WHITE else Ui.GREY, bold = on).apply {
                 letterSpacing = 0.12f
@@ -1314,7 +1314,7 @@ class MainActivity : BaseActivity(), Shizuku.OnRequestPermissionResultListener {
                 }
             }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { setMargins(0, 0, dp(6), 0) })
         }
-        quickRow.addView(Ui.text(this, if (sortOld) "ESKİ ▲" else "YENİ ▼", 10f, Ui.GREY, bold = true).apply {
+        quickRow.addView(Ui.text(this, if (sortOld) "OLDEST ▲" else "NEWEST ▼", 10f, Ui.GREY, bold = true).apply {
             letterSpacing = 0.12f
             gravity = Gravity.CENTER
             background = Ui.rounded(this@MainActivity, Color.TRANSPARENT, 16f, Ui.LINE)
@@ -1333,10 +1333,10 @@ class MainActivity : BaseActivity(), Shizuku.OnRequestPermissionResultListener {
         val now = System.currentTimeMillis()
         val day = 86_400_000L
         val r = when (quick) {
-            "BUGÜN" -> xs.filter { Store.dayKey(it.time) == Store.dayKey(now) }
-            "HAFTA" -> xs.filter { now - it.time < 7 * day }
-            "SABİT" -> xs.filter { it.pinned }
-            "ETİKET" -> xs.filter { it.tags.isNotEmpty() }
+            "TODAY" -> xs.filter { Store.dayKey(it.time) == Store.dayKey(now) }
+            "WEEK" -> xs.filter { now - it.time < 7 * day }
+            "PINNED" -> xs.filter { it.pinned }
+            "TAG" -> xs.filter { it.tags.isNotEmpty() }
             else -> xs
         }
         return if (sortOld) r.sortedBy { it.time } else r
@@ -1381,7 +1381,7 @@ class MainActivity : BaseActivity(), Shizuku.OnRequestPermissionResultListener {
     private val statusPoll = object : Runnable {
         override fun run() {
             if (isFinishing) return
-            if (Ocr.pending > Ocr.done) status.text = "OKUNUYOR ${Ocr.done}/${Ocr.pending}"
+            if (Ocr.pending > Ocr.done) status.text = "READING ${Ocr.done}/${Ocr.pending}"
             else refreshStatus()
             pollHandler.postDelayed(this, 700)
         }
@@ -1408,7 +1408,7 @@ class MainActivity : BaseActivity(), Shizuku.OnRequestPermissionResultListener {
     }
 
     private fun renameEntry(e: Entry) {
-        showInput("KAYIT ADI", "boş bırakırsan ad silinir", e.title) { v ->
+        showInput("RECORD NAME", "leave empty to clear the name", e.title) { v ->
             Info.update(e.file) { it.copy(title = v.trim()) }
             cardGen++
             renderList(false)
@@ -1459,10 +1459,10 @@ class MainActivity : BaseActivity(), Shizuku.OnRequestPermissionResultListener {
             gravity = Gravity.CENTER_VERTICAL
             background = Ui.rounded(this@MainActivity, Ui.BG, 28f, Ui.BORDER2)
             setPadding(dp(22), 0, dp(8), 0)
-            addView(Ui.kindLabel(this@MainActivity, "KAYIT SİLİNDİ").apply { text = Ui.withDot("KAYIT SİLİNDİ", Ui.RED) },
+            addView(Ui.kindLabel(this@MainActivity, "RECORD DELETED").apply { text = Ui.withDot("RECORD DELETED", Ui.RED) },
                 LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
             addView(TextView(this@MainActivity).apply {
-                text = "GERİ AL"
+                text = "UNDO"
                 textSize = 11f
                 setTextColor(Ui.WHITE)
                 typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
@@ -1539,19 +1539,19 @@ class MainActivity : BaseActivity(), Shizuku.OnRequestPermissionResultListener {
                     setPadding(0, 0, 0, dp(10))
                 })
             }
-            addView(sheetRow("AÇ", Ui.ICON_OPEN, Ui.WHITE, false) { hideSheet(); open(e.file) })
-            addView(sheetRow("SEÇ", Ui.ICON_SHOT, Ui.WHITE, true) { hideSheet(); enterSelection(e) })
-            addView(sheetRow("ADI DEĞİŞTİR", Ui.ICON_TAG, Ui.WHITE, true) { hideSheet(); renameEntry(e) })
-            addView(sheetRow("PAYLAŞ", Ui.ICON_SHARE, Ui.WHITE, true) { hideSheet(); share(e.file) })
-            addView(sheetRow(if (e.pinned) "SABİTLEMEYİ KALDIR" else "SABİTLE", Ui.ICON_PIN, Ui.WHITE, true) { hideSheet(); togglePin(e) })
-            addView(sheetRow("ETİKET", Ui.ICON_TAG, Ui.WHITE, true) { hideSheet(); editTags(e) })
+            addView(sheetRow("OPEN", Ui.ICON_OPEN, Ui.WHITE, false) { hideSheet(); open(e.file) })
+            addView(sheetRow("SELECT", Ui.ICON_SHOT, Ui.WHITE, true) { hideSheet(); enterSelection(e) })
+            addView(sheetRow("RENAME", Ui.ICON_TAG, Ui.WHITE, true) { hideSheet(); renameEntry(e) })
+            addView(sheetRow("SHARE", Ui.ICON_SHARE, Ui.WHITE, true) { hideSheet(); share(e.file) })
+            addView(sheetRow(if (e.pinned) "UNPIN" else "PIN", Ui.ICON_PIN, Ui.WHITE, true) { hideSheet(); togglePin(e) })
+            addView(sheetRow("TAG", Ui.ICON_TAG, Ui.WHITE, true) { hideSheet(); editTags(e) })
             if (Vault.configured(this@MainActivity)) {
-                addView(sheetRow("GİZLE", Ui.ICON_LOCK, Ui.WHITE, true) { hideSheet(); moveToVault(e) })
+                addView(sheetRow("HIDE", Ui.ICON_LOCK, Ui.WHITE, true) { hideSheet(); moveToVault(e) })
             }
-            addView(sheetRow(if (e.remind > System.currentTimeMillis()) "HATIRLATICIYI KALDIR" else "HATIRLATICI", Ui.ICON_BELL, Ui.WHITE, true) {
+            addView(sheetRow(if (e.remind > System.currentTimeMillis()) "REMOVE REMINDER" else "REMINDER", Ui.ICON_BELL, Ui.WHITE, true) {
                 hideSheet(); toggleReminder(e)
             })
-            addView(sheetRow("SİL", Ui.ICON_TRASH, Ui.RED, true) { hideSheet(); softDelete(e) })
+            addView(sheetRow("DELETE", Ui.ICON_TRASH, Ui.RED, true) { hideSheet(); softDelete(e) })
         }
         decor.addView(scrim, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
         decor.addView(sheet, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM))
@@ -1622,6 +1622,6 @@ class MainActivity : BaseActivity(), Shizuku.OnRequestPermissionResultListener {
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
         }
-        startActivity(Intent.createChooser(intent, "Paylaş"))
+        startActivity(Intent.createChooser(intent, "Share"))
     }
 }
